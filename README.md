@@ -1,4 +1,4 @@
-# OBS HuaWeiCloud
+# KODO Qiniu
 
 使用七牛云海量存储系统 KODO 作为附件存储空间的 WordPress 插件
 
