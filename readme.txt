@@ -3,9 +3,9 @@ Contributors: shenyanzhi
 Donate link: https://qq52o.me/sponsor.html
 Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.2
-Tested up to: 5.4
+Tested up to: 5.5
 Requires PHP: 5.6.0
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: Apache 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -59,6 +59,12 @@ QQ交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.2.0 =
+* 优化同步上传路径获取
+* 修复多站点上传原图失败，缩略图正常问题
+* 优化上传路径获取
+* 增加数据库题图链接替换
 
 = 1.1.0 =
 * 优化删除文件为批量删除

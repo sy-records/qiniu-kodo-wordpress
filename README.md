@@ -2,10 +2,12 @@
 
 使用七牛云海量存储系统 KODO 作为附件存储空间的 WordPress 插件
 
-[![Latest Version](https://img.shields.io/github/release/sy-records/qiniu-kodo-wordpress.svg?style=flat-square)](https://github.com/sy-records/qiniu-kodo-wordpress/releases)
-[![License](https://img.shields.io/github/license/sy-records/qiniu-kodo-wordpress?color=blue)](LICENSE)
-[![contact-@Luffy](https://img.shields.io/badge/contact-@Luffy-blue.svg)](https://qq52o.me)
+[![Latest Version](https://img.shields.io/github/release/sy-records/qiniu-kodo-wordpress.svg)](https://github.com/sy-records/qiniu-kodo-wordpress/releases)
+[![License](https://img.shields.io/github/license/sy-records/qiniu-kodo-wordpress?color=red)](LICENSE)
+[![website](https://img.shields.io/badge/website-qq52o.me-blue)](https://qq52o.me)
 [![contributors](https://img.shields.io/github/contributors/sy-records/qiniu-kodo-wordpress?color=blue)](https://github.com/sy-records/qiniu-kodo-wordpress/graphs/contributors)
+[![plugin stars](https://img.shields.io/wordpress/plugin/stars/kodo-qiniu)](https://wordpress.org/plugins/kodo-qiniu/)
+[![plugin installs](https://img.shields.io/wordpress/plugin/installs/kodo-qiniu)](https://wordpress.org/plugins/kodo-qiniu/)
 
 ## 插件特色
 
@@ -24,9 +26,9 @@ WordPress 后台安装插件页面搜索`KODO Qiniu`，点击安装
 
 ### 下载源码
 
-从 Github 下载源码，通过 WordPress 后台上传安装，或者直接将源码上传到 WordPress 插件目录`wp-content/plugins`，然后在后台启用
+从 GitHub 下载源码，通过 WordPress 后台上传安装，或者直接将源码上传到 WordPress 插件目录`wp-content/plugins`，然后在后台启用
 
-Github 下载节点：[https://github.com/sy-records/qiniu-kodo-wordpress/releases/latest](https://github.com/sy-records/qiniu-kodo-wordpress/releases/latest)
+GitHub 下载节点：[https://github.com/sy-records/qiniu-kodo-wordpress/releases/latest](https://github.com/sy-records/qiniu-kodo-wordpress/releases/latest)
 
 ## 修改配置
 
