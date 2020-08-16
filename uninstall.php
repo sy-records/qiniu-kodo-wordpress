@@ -5,13 +5,13 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit();
 }
 
-$obs_options = get_option('kodo_options', true);
+$kodo_options = get_option('kodo_options', true);
 $upload_url_path = get_option('upload_url_path');
-$obs_upload_url_path = esc_attr($obs_options['upload_url_path']);
+$kodo_upload_url_path = esc_attr($kodo_options['upload_url_path']);
 
 //如果现在使用的是七牛的URL，则恢复原状
-if ($upload_url_path == $obs_upload_url_path) {
-    update_option('upload_url_path', "");
+if ($upload_url_path == $kodo_upload_url_path) {
+    update_option('upload_url_path', '');
 }
 
 //移除配置

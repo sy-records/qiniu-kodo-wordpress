@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.1.0
+Version: 1.2.0
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -11,7 +11,7 @@ License: Apache 2.0
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', "1.1.0");
+define('KODO_VERSION', '1.2.0');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -56,12 +56,9 @@ function kodo_get_bucket_name()
 }
 
 /**
- * 上传函数
- *
- * @param  $object
- * @param  $file
- * @param  $opt
- * @return bool
+ * @param $object
+ * @param $file
+ * @param false $no_local_file
  */
 function kodo_file_upload($object, $file, $no_local_file = false)
 {
@@ -73,7 +70,7 @@ function kodo_file_upload($object, $file, $no_local_file = false)
     // 要上传文件的本地路径
     $filePath = $file;
     // 上传到七牛后保存的文件名
-    $key = ltrim($object, "/");
+    $key = ltrim($object, '/');
     // 初始化 UploadManager 对象并进行文件的上传。
     $uploadMgr = new UploadManager();
     // 调用 UploadManager 的 putFile 方法进行文件的上传。
@@ -180,14 +177,14 @@ function kodo_upload_attachments($metadata)
     if (!in_array($metadata['type'], $image_mime_types)) {
         //生成object在kodo中的存储路径
         if (get_option('upload_path') == '.') {
-            //如果含有“./”则去除之
             $metadata['file'] = str_replace("./", '', $metadata['file']);
         }
         $object = str_replace("\\", '/', $metadata['file']);
-        $object = str_replace(get_home_path(), '', $object);
+        $home_path = get_home_path();
+        $object = str_replace($home_path, '', $object);
 
         //在本地的存储路径
-        $file = get_home_path() . $object; //向上兼容，较早的WordPress版本上$metadata['file']存放的是相对路径
+        $file = $home_path . $object; //向上兼容，较早的WordPress版本上$metadata['file']存放的是相对路径
 
         //执行上传操作
         kodo_file_upload('/' . $object, $file, kodo_is_delete_local_file());
@@ -213,8 +210,18 @@ function kodo_upload_thumbs($metadata)
     $kodo_options = get_option('kodo_options', true);
     if (isset($metadata['file'])) {
         // Maybe there is a problem with the old version
-        $object ='/' . get_option('upload_path') . '/' . $metadata['file'];
         $file = $basedir . '/' . $metadata['file'];
+        $upload_path = get_option('upload_path');
+        if ($upload_path != '.') {
+            $path_array = explode($upload_path, $file);
+            if (isset($path_array[1]) && !empty($path_array[1])) {
+                $object = '/' . $upload_path . $path_array[1];
+            }
+        } else {
+            $object = '/' . $metadata['file'];
+            $file = str_replace('./', '', $file);
+        }
+
         kodo_file_upload($object, $file, (esc_attr($kodo_options['nolocalsaving']) == 'true'));
     }
     //上传所有缩略图
@@ -227,11 +234,9 @@ function kodo_upload_thumbs($metadata)
         }
         //得到本地文件夹和远端文件夹
         $file_path = $basedir . '/' . dirname($metadata['file']) . '/';
+        $file_path = str_replace("\\", '/', $file_path);
         if (get_option('upload_path') == '.') {
-            $file_path = str_replace("\\", '/', $file_path);
-            $file_path = str_replace(get_home_path() . "./", '', $file_path);
-        } else {
-            $file_path = str_replace("\\", '/', $file_path);
+            $file_path = str_replace('./', '', $file_path);
         }
 
         $object_path = str_replace(get_home_path(), '', $file_path);
@@ -319,8 +324,13 @@ function kodo_function_each(&$array)
     return $res;
 }
 
+/**
+ * @param $dir
+ * @return array
+ */
 function kodo_read_dir_queue($dir)
 {
+    $dd = [];
     if (isset($dir)) {
         $files = array();
         $queue = array($dir);
@@ -340,17 +350,14 @@ function kodo_read_dir_queue($dir)
             }
             closedir($handle);
         }
-        $i = '';
+        $upload_path = get_option('upload_path');
         foreach ($files as $v) {
-            $i++;
             if (!is_dir($v)) {
-                $dd[$i]['j'] = $v;
-                $dd[$i]['x'] = '/' . get_option('upload_path') . explode(get_option('upload_path'), $v)[1];
+                $dd[] = ['filepath' => $v, 'key' =>  '/' . $upload_path . explode($upload_path, $v)[1]];
             }
         }
-    } else {
-        $dd = '';
     }
+
     return $dd;
 }
 
@@ -394,24 +401,27 @@ function kodo_setting_page()
     }
 
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_all') {
-        $synv = kodo_read_dir_queue(get_home_path() . get_option('upload_path'));
-        $i = 0;
-        foreach ($synv as $k) {
-            $i++;
-            kodo_file_upload($k['x'], $k['j']);
+        $sync = kodo_read_dir_queue(get_home_path() . get_option('upload_path'));
+        foreach ($sync as $k) {
+            kodo_file_upload($k['key'], $k['filepath']);
         }
-        echo '<div class="updated"><p><strong>本次操作成功同步' . $i . '个文件</strong></p></div>';
+        echo '<div class="updated"><p><strong>本次操作成功同步' . count($sync) . '个文件</strong></p></div>';
     }
 
     // 替换数据库链接
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_replace') {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'posts';
-        $oldurl = esc_url_raw($_POST['old_url']);
-        $newurl = esc_url_raw($_POST['new_url']);
-        $result = $wpdb->query("UPDATE $table_name SET post_content = REPLACE( post_content, '$oldurl', '$newurl') ");
+        $old_url = esc_url_raw($_POST['old_url']);
+        $new_url = esc_url_raw($_POST['new_url']);
 
-        echo '<div class="updated"><p><strong>替换成功！共批量执行' . $result . '条！</strong></p></div>';
+        global $wpdb;
+        // 文章内容
+        $posts_name = $wpdb->prefix .'posts';
+        $posts_result = $wpdb->query("UPDATE $posts_name SET post_content = REPLACE( post_content, '$old_url', '$new_url') ");
+        // 修改题图之类的
+        $postmeta_name = $wpdb->prefix .'postmeta';
+        $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url') ");
+
+        echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
     }
 
     // 若$options不为空数组，则更新数据
@@ -445,8 +455,7 @@ function kodo_setting_page()
     ?>
     <div class="wrap" style="margin: 10px;">
         <h1>七牛云 Kodo 设置 <span style="font-size: 13px;">当前版本：<?php echo KODO_VERSION; ?></span></h1>
-        <p>如果觉得此插件对你有所帮助，不妨到 <a href="https://github.com/sy-records/qiniu-kodo-wordpress" target="_blank">Github</a> 上点个<code>Star</code>，<code>Watch</code>关注更新；
-        </p>
+        <p>如果觉得此插件对你有所帮助，不妨到 <a href="https://github.com/sy-records/qiniu-kodo-wordpress" target="_blank">GitHub</a> 上点个<code>Star</code>，<code>Watch</code>关注更新；<a href="//shang.qq.com/wpa/qunwpa?idkey=c7f4fbd7ef84184555dfb6377d8ae087b3d058d8eeae1ff8e2da25c00d53173f" target="_blank">欢迎加入云存储插件交流群,QQ群号:887595381</a>；</p>
         <hr/>
         <form name="form1" method="post" action="<?php echo wp_nonce_url(
             './options-general.php?page=' . KODO_BASEFOLDER . '/qiniu-kodo-wordpress.php'
@@ -571,7 +580,7 @@ function kodo_setting_page()
                     <input type="hidden" name="type" value="qiniu_kodo_replace">
                     <td>
                         <input type="submit" name="submit" class="button button-secondary" value="开始替换"/>
-                        <p><b>注意：如果是首次替换，请注意备份！此功能只限于替换文章中使用的资源链接</b></p>
+                        <p><b>注意：如果是首次替换，请注意备份！此功能会替换文章以及设置的特色图片（题图）等使用的资源链接</b></p>
                     </td>
                 </tr>
             </table>
