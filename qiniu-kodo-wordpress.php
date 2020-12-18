@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.2.0
+Version: 1.2.1
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -11,7 +11,7 @@ License: Apache 2.0
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.2.0');
+define('KODO_VERSION', '1.2.1');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -281,8 +281,8 @@ function kodo_delete_remote_attachment($post_id)
 
         $kodo_options = get_option('kodo_options', true);
 
-        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
-        if ($is_nothumb) {
+//        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
+//        if ($is_nothumb) {
             // 删除缩略图
             if (isset($meta['sizes']) && count($meta['sizes']) > 0) {
                 foreach ($meta['sizes'] as $val) {
@@ -290,7 +290,7 @@ function kodo_delete_remote_attachment($post_id)
                     $deleteObjects[] = str_replace("\\", '/', $size_file);
                 }
             }
-        }
+//        }
 
         kodo_delete_kodo_files($kodo_options['bucket'], $deleteObjects);
     }
