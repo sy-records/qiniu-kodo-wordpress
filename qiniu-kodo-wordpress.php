@@ -279,7 +279,7 @@ function kodo_delete_remote_attachment($post_id)
 
         $deleteObjects[] = str_replace("\\", '/', $file_path);
 
-        $kodo_options = get_option('kodo_options', true);
+//        $kodo_options = get_option('kodo_options', true);
 
 //        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
 //        if ($is_nothumb) {
