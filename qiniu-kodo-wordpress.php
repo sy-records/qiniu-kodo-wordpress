@@ -279,8 +279,6 @@ function kodo_delete_remote_attachment($post_id)
 
         $deleteObjects[] = str_replace("\\", '/', $file_path);
 
-//        $kodo_options = get_option('kodo_options', true);
-
 //        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
 //        if ($is_nothumb) {
             // 删除缩略图
@@ -292,6 +290,7 @@ function kodo_delete_remote_attachment($post_id)
             }
 //        }
 
+        $kodo_options = get_option('kodo_options', true);
         kodo_delete_kodo_files($kodo_options['bucket'], $deleteObjects);
     }
 }
