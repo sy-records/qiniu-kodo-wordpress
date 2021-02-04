@@ -5,7 +5,7 @@ Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.2
 Tested up to: 5.6
 Requires PHP: 5.6.0
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: Apache 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -59,6 +59,11 @@ QQ交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.2.2 =
+* 修复缩略图删除获取配置错误
+* 升级 SDK
+* 增加图片样式处理
 
 = 1.2.1 =
 * 优化缩略图删除
