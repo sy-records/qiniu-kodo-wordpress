@@ -6,6 +6,7 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Qiniu\\Auth' => $vendorDir . '/qiniu/php-sdk/src/Qiniu/Auth.php',
     'Qiniu\\Cdn\\CdnManager' => $vendorDir . '/qiniu/php-sdk/src/Qiniu/Cdn/CdnManager.php',
     'Qiniu\\Config' => $vendorDir . '/qiniu/php-sdk/src/Qiniu/Config.php',
