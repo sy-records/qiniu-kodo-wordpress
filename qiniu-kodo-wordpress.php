@@ -24,12 +24,13 @@ register_activation_hook(__FILE__, 'kodo_set_options');
 function kodo_set_options()
 {
     $options = array(
-        'bucket' => "",
-        'accessKey' => "",
-        'secretKey' => "",
-        'nothumb' => "false", // 是否上传缩略图
-        'nolocalsaving' => "false", // 是否保留本地备份
-        'upload_url_path' => "", // URL前缀
+        'bucket' => '',
+        'accessKey' => '',
+        'secretKey' => '',
+        'nothumb' => 'false', // 是否上传缩略图
+        'nolocalsaving' => 'false', // 是否保留本地备份
+        'upload_url_path' => '', // URL前缀
+        'image_style' => '',
     );
     add_option('kodo_options', $options, '', 'yes');
 }
@@ -372,6 +373,40 @@ function kodo_plugin_action_links($links, $file)
 
 add_filter('plugin_action_links', 'kodo_plugin_action_links', 10, 2);
 
+add_filter('the_content', 'kodo_setting_content_style');
+function kodo_setting_content_style($content)
+{
+    $option = get_option('kodo_options');
+    if (!empty($option['image_style'])) {
+        preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $content, $images);
+        if (!empty($images) && isset($images[1])) {
+            foreach ($images[1] as $item) {
+                if(strpos($item, $option['upload_url_path']) !== false){
+                    $content = str_replace($item, $item . $option['image_style'], $content);
+                }
+            }
+        }
+    }
+    return $content;
+}
+
+add_filter('post_thumbnail_html', 'kodo_setting_post_thumbnail_style', 10, 3);
+function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
+{
+    $option = get_option('kodo_options');
+    if (!empty($option['image_style']) && has_post_thumbnail()) {
+        preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $html, $images);
+        if (!empty($images) && isset($images[1])) {
+            foreach ($images[1] as $item) {
+                if(strpos($item, $option['upload_url_path']) !== false){
+                    $html = str_replace($item, $item . $option['image_style'], $html);
+                }
+            }
+        }
+    }
+    return $html;
+}
+
 // 在导航栏“设置”中添加条目
 function kodo_add_setting_page()
 {
@@ -397,6 +432,7 @@ function kodo_setting_page()
         $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(
             stripslashes($_POST['upload_url_path'])
         ) : '';
+        $options['image_style'] = isset($_POST['image_style']) ? sanitize_text_field($_POST['image_style']) : '';
     }
 
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_all') {
@@ -449,6 +485,8 @@ function kodo_setting_page()
 
     $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']);
     $kodo_nolocalsaving = ($kodo_nolocalsaving == 'true');
+
+    $kodo_image_style = esc_attr($kodo_options['image_style']);
 
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
     ?>
@@ -528,6 +566,23 @@ function kodo_setting_page()
                 </tr>
                 <tr>
                     <th>
+                        <legend>图片样式</legend>
+                    </th>
+                    <td>
+                        <input type="text" name="image_style" value="<?php echo $kodo_image_style; ?>" size="50" placeholder="请输入图片样式，留空表示不处理"/>
+
+                        <p><b>获取图片样式：</b></p>
+
+                        <p>1）在 <a href="https://portal.qiniu.com/kodo/bucket/image-style?bucketName=<?php echo $kodo_bucket; ?>" target="_blank">空间管理</a> 中对应空间的 <code>图片样式</code> 处添加。</p>
+
+                        <p>2）填写时需要将<code>分隔符</code>和对应的<code>名称</code>或 <code>处理接口</code>进行拼接，例如：</p>
+
+                        <p><code>分隔符</code>为<code>!</code>(感叹号)，<code>名称</code>为<code>webp</code>，<code>处理接口</code>为 <code>imageView2/0/format/webp/q/75</code></p>
+                        <p>则填写为 <code>!webp</code> 或 <code>?imageView2/0/format/webp/q/75</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
                         <legend>保存/更新选项</legend>
                     </th>
                     <td><input type="submit" name="submit" class="button button-primary" value="保存更改"/></td>
@@ -546,7 +601,7 @@ function kodo_setting_page()
                     <input type="hidden" name="type" value="qiniu_kodo_all">
                     <td>
                         <input type="submit" name="submit" class="button button-secondary" value="开始同步"/>
-                        <p><b>注意：如果是首次同步，执行时间将会十分十分长（根据你的历史附件数量），有可能会因执行时间过长，页面显示超时或者报错。<br> 所以，建议那些几千上万附件的大神们，考虑官方的 <a target="_blank" rel="nofollow" href="https://developer.qiniu.com/kodo/tools/6435/kodoimport">同步工具</a></b></p>
+                        <p><b>注意：如果是首次同步，执行时间将会非常长（根据你的历史附件数量），有可能会因为执行时间过长，导致页面显示超时或者报错。<br> 所以，建议附件数量过多的用户，直接使用官方的 <a target="_blank" rel="nofollow" href="https://developer.qiniu.com/kodo/tools/6435/kodoimport">同步工具</a></b></p>
                     </td>
                 </tr>
             </table>
