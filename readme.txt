@@ -5,7 +5,7 @@ Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.2
 Tested up to: 5.6
 Requires PHP: 5.6.0
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: Apache 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -26,7 +26,8 @@ License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 4. 支持替换数据库中旧的资源链接地址
 5. 支持七牛云海量存储系统KODO完整地域使用
 6. 支持同步历史附件到七牛云海量存储系统KODO
-7. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
+7. 支持七牛云图片样式
+8. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
 
 ## 其他插件
 
@@ -59,6 +60,10 @@ QQ交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.2.3 =
+* 优化远端文件删除
+* 修复同步文件上传报错`fread(): Length parameter must be greater than 0`
 
 = 1.2.2 =
 * 修复缩略图删除获取配置错误
