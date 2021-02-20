@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.2.2
+Version: 1.2.3
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -11,7 +11,7 @@ License: Apache 2.0
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.2.2');
+define('KODO_VERSION', '1.2.3');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -135,7 +135,7 @@ function kodo_delete_local_file($file)
  * @param $file
  * @return bool
  */
-function kodo_delete_kodo_file($file)
+function kodo_delete_file($file)
 {
     $bucket = kodo_get_bucket_name();
     $bucketManager = new BucketManager(kodo_get_auth());
@@ -148,7 +148,7 @@ function kodo_delete_kodo_file($file)
  * @param $bucket
  * @param array $files
  */
-function kodo_delete_kodo_files($bucket, array $files)
+function kodo_delete_files($bucket, array $files)
 {
     $bucketManager = new BucketManager(kodo_get_auth());
 
@@ -275,6 +275,7 @@ if (substr_count($_SERVER['REQUEST_URI'], '/update.php') <= 0) {
 function kodo_delete_remote_attachment($post_id)
 {
     $meta = wp_get_attachment_metadata($post_id);
+    $kodo_options = get_option('kodo_options', true);
 
     if (isset($meta['file'])) {
         $deleteObjects = [];
@@ -298,8 +299,25 @@ function kodo_delete_remote_attachment($post_id)
             }
 //        }
 
-        $kodo_options = get_option('kodo_options', true);
-        kodo_delete_kodo_files($kodo_options['bucket'], $deleteObjects);
+        kodo_delete_files($kodo_options['bucket'], $deleteObjects);
+    } else {
+        // 获取链接删除
+        $link = wp_get_attachment_url($post_id);
+        if ($link) {
+            $upload_path = get_option('upload_path');
+            if ($upload_path != '.') {
+                $file_info = explode($upload_path, $link);
+                if (isset($file_info[1])) {
+                    kodo_delete_file($upload_path . $file_info[1]);
+                }
+            } else {
+                $kodo_upload_url = esc_attr($kodo_options['upload_url_path']);
+                $file_info = explode($kodo_upload_url, $link);
+                if (isset($file_info[1])) {
+                    kodo_delete_file($file_info[1]);
+                }
+            }
+        }
     }
 }
 
