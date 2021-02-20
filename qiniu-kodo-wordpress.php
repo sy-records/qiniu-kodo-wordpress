@@ -67,6 +67,13 @@ function kodo_file_upload($object, $file, $no_local_file = false)
     if (!@file_exists($file)) {
         return false;
     }
+
+    // Fix fread(): Length parameter must be greater than 0
+    $filesize = @filesize($file);
+    if ($filesize === 0 || $filesize === false) {
+        return false;
+    }
+
     $token = kodo_get_auth_token();
     // 要上传文件的本地路径
     $filePath = $file;
