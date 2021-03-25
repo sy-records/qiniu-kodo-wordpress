@@ -18,6 +18,10 @@ use Qiniu\Auth;
 use Qiniu\Storage\UploadManager;
 use Qiniu\Storage\BucketManager;
 
+if (!function_exists('get_home_path')) {
+    require_once(ABSPATH . 'wp-admin/includes/file.php');
+}
+
 // 初始化选项
 register_activation_hook(__FILE__, 'kodo_set_options');
 // 初始化选项
