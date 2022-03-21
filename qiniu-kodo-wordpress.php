@@ -245,7 +245,10 @@ function kodo_upload_thumbs($metadata)
             return $metadata;
         }
         //得到本地文件夹和远端文件夹
-        $file_path = $basedir . '/' . dirname($metadata['file']) . '/';
+        $file_path = $basedir . '/';
+        if (dirname($metadata['file']) != '.') {
+            $file_path .= dirname($metadata['file']) . '/';
+        }
         $file_path = str_replace("\\", '/', $file_path);
         if (get_option('upload_path') == '.') {
             $file_path = str_replace('./', '', $file_path);
