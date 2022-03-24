@@ -3,15 +3,19 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.2.5
+Version: 1.3.0
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
 */
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.2.5');
+define('KODO_VERSION', '1.3.0');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -166,6 +170,11 @@ function kodo_delete_files($bucket, array $files)
 //    }
 }
 
+function kodo_get_option($key)
+{
+    return esc_attr(get_option($key));
+}
+
 /**
  * 上传附件（包括图片的原图）
  *
@@ -188,7 +197,7 @@ function kodo_upload_attachments($metadata)
     // 图片在缩略图处理
     if (!in_array($metadata['type'], $image_mime_types)) {
         //生成object在kodo中的存储路径
-        if (get_option('upload_path') == '.') {
+        if (kodo_get_option('upload_path') == '.') {
             $metadata['file'] = str_replace("./", '', $metadata['file']);
         }
         $object = str_replace("\\", '/', $metadata['file']);
@@ -220,14 +229,14 @@ function kodo_upload_thumbs($metadata)
     $basedir = $wp_uploads['basedir'];
     //获取kodo插件的配置信息
     $kodo_options = get_option('kodo_options', true);
-    if (isset($metadata['file'])) {
+    if (!empty($metadata['file'])) {
         // Maybe there is a problem with the old version
         $file = $basedir . '/' . $metadata['file'];
-        $upload_path = get_option('upload_path');
+        $upload_path = kodo_get_option('upload_path');
         if ($upload_path != '.') {
             $path_array = explode($upload_path, $file);
-            if (isset($path_array[1]) && !empty($path_array[1])) {
-                $object = '/' . $upload_path . $path_array[1];
+            if (count($path_array) >= 2) {
+                $object = '/' . $upload_path . end($path_array);
             }
         } else {
             $object = '/' . $metadata['file'];
@@ -237,7 +246,7 @@ function kodo_upload_thumbs($metadata)
         kodo_file_upload($object, $file, (esc_attr($kodo_options['nolocalsaving']) == 'true'));
     }
     //上传所有缩略图
-    if (isset($metadata['sizes']) && count($metadata['sizes']) > 0) {
+    if (!empty($metadata['sizes'])) {
         //是否需要上传缩略图
         $nothumb = (esc_attr($kodo_options['nothumb']) == 'true');
         //如果禁止上传缩略图，就不用继续执行了
@@ -248,7 +257,7 @@ function kodo_upload_thumbs($metadata)
         $dirname = dirname($metadata['file']);
         $file_path = $dirname != '.' ? "{$basedir}/{$dirname}/" : "{$basedir}/";
         $file_path = str_replace("\\", '/', $file_path);
-        if (get_option('upload_path') == '.') {
+        if (kodo_get_option('upload_path') == '.') {
             $file_path = str_replace('./', '', $file_path);
         }
 
@@ -282,10 +291,10 @@ function kodo_delete_remote_attachment($post_id)
     $meta = wp_get_attachment_metadata($post_id);
     $kodo_options = get_option('kodo_options', true);
 
-    if (isset($meta['file'])) {
+    if (!empty($meta['file'])) {
         $deleteObjects = [];
         // meta['file']的格式为 "2020/01/wp-bg.png"
-        $upload_path = get_option('upload_path');
+        $upload_path = kodo_get_option('upload_path');
         if ($upload_path == '') {
             $upload_path = 'wp-content/uploads';
         }
@@ -296,7 +305,7 @@ function kodo_delete_remote_attachment($post_id)
 //        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
 //        if ($is_nothumb) {
             // 删除缩略图
-            if (isset($meta['sizes']) && count($meta['sizes']) > 0) {
+            if (!empty($meta['sizes'])) {
                 foreach ($meta['sizes'] as $val) {
                     $size_file = dirname($file_path) . '/' . $val['file'];
                     $deleteObjects[] = str_replace("\\", '/', $size_file);
@@ -309,11 +318,11 @@ function kodo_delete_remote_attachment($post_id)
         // 获取链接删除
         $link = wp_get_attachment_url($post_id);
         if ($link) {
-            $upload_path = get_option('upload_path');
+            $upload_path = kodo_get_option('upload_path');
             if ($upload_path != '.') {
                 $file_info = explode($upload_path, $link);
-                if (isset($file_info[1])) {
-                    kodo_delete_file($upload_path . $file_info[1]);
+                if (count($file_info) >= 2) {
+                    kodo_delete_file(end($file_info));
                 }
             } else {
                 $kodo_upload_url = esc_attr($kodo_options['upload_url_path']);
@@ -336,7 +345,7 @@ function kodo_modefiy_img_url($url, $post_id)
     return $url;
 }
 
-if (get_option('upload_path') == '.') {
+if (kodo_get_option('upload_path') == '.') {
     add_filter('wp_get_attachment_url', 'kodo_modefiy_img_url', 30, 2);
 }
 
@@ -375,12 +384,12 @@ function kodo_read_dir_queue($dir)
                     if (is_dir($real_path)) {
                         $queue[] = $real_path;
                     }
-                    //echo explode(get_option('upload_path'),$path)[1];
+                    //echo explode(kodo_get_option('upload_path'),$path)[1];
                 }
             }
             closedir($handle);
         }
-        $upload_path = get_option('upload_path');
+        $upload_path = kodo_get_option('upload_path');
         foreach ($files as $v) {
             if (!is_dir($v)) {
                 $dd[] = ['filepath' => $v, 'key' =>  '/' . $upload_path . explode($upload_path, $v)[1]];
@@ -407,12 +416,12 @@ add_filter('the_content', 'kodo_setting_content_style');
 function kodo_setting_content_style($content)
 {
     $option = get_option('kodo_options');
-    if (!empty($option['image_style'])) {
+    if (!empty(esc_attr($option['image_style']))) {
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $content, $images);
         if (!empty($images) && isset($images[1])) {
             foreach ($images[1] as $item) {
-                if(strpos($item, $option['upload_url_path']) !== false){
-                    $content = str_replace($item, $item . $option['image_style'], $content);
+                if(strpos($item, esc_attr($option['upload_url_path'])) !== false){
+                    $content = str_replace($item, $item . esc_attr($option['image_style']), $content);
                 }
             }
         }
@@ -424,12 +433,12 @@ add_filter('post_thumbnail_html', 'kodo_setting_post_thumbnail_style', 10, 3);
 function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
 {
     $option = get_option('kodo_options');
-    if (!empty($option['image_style']) && has_post_thumbnail()) {
+    if (!empty(esc_attr($option['image_style'])) && has_post_thumbnail()) {
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $html, $images);
         if (!empty($images) && isset($images[1])) {
             foreach ($images[1] as $item) {
-                if(strpos($item, $option['upload_url_path']) !== false){
-                    $html = str_replace($item, $item . $option['image_style'], $html);
+                if(strpos($item, esc_attr($option['upload_url_path'])) !== false){
+                    $html = str_replace($item, $item . esc_attr($option['image_style']), $html);
                 }
             }
         }
@@ -466,11 +475,11 @@ function kodo_setting_page()
     }
 
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_all') {
-        $sync = kodo_read_dir_queue(get_home_path() . get_option('upload_path'));
+        $sync = kodo_read_dir_queue(get_home_path() . kodo_get_option('upload_path'));
         foreach ($sync as $k) {
             kodo_file_upload($k['key'], $k['filepath']);
         }
-        echo '<div class="updated"><p><strong>本次操作成功同步' . count($sync) . '个文件</strong></p></div>';
+        echo esc_html('<div class="updated"><p><strong>本次操作成功同步' . count($sync) . '个文件</strong></p></div>');
     }
 
     // 替换数据库链接
@@ -486,7 +495,7 @@ function kodo_setting_page()
         $postmeta_name = $wpdb->prefix .'postmeta';
         $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url') ");
 
-        echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
+        echo esc_html('<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>');
     }
 
     // 若$options不为空数组，则更新数据
@@ -495,20 +504,14 @@ function kodo_setting_page()
         update_option('kodo_options', $options);
 
         $upload_path = sanitize_text_field(trim(stripslashes($_POST['upload_path']), '/'));
-        $upload_path = ($upload_path == '') ? ('wp-content/uploads') : ($upload_path);
+        $upload_path = ($upload_path == '') ? 'wp-content/uploads' : $upload_path;
         update_option('upload_path', $upload_path);
         $upload_url_path = sanitize_text_field(trim(stripslashes($_POST['upload_url_path']), '/'));
         update_option('upload_url_path', $upload_url_path);
-        echo '<div class="updated"><p><strong>设置已保存！</strong></p></div>';
+        echo esc_html('<div class="updated"><p><strong>设置已保存！</strong></p></div>');
     }
 
     $kodo_options = get_option('kodo_options', true);
-    $upload_path = get_option('upload_path');
-    $upload_url_path = get_option('upload_url_path');
-
-    $kodo_bucket = esc_attr($kodo_options['bucket']);
-    $kodo_access_key = esc_attr($kodo_options['accessKey']);
-    $kodo_secret_key = esc_attr($kodo_options['secretKey']);
 
     $kodo_nothumb = esc_attr($kodo_options['nothumb']);
     $kodo_nothumb = ($kodo_nothumb == 'true');
@@ -516,9 +519,7 @@ function kodo_setting_page()
     $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']);
     $kodo_nolocalsaving = ($kodo_nolocalsaving == 'true');
 
-    $kodo_image_style = esc_attr($kodo_options['image_style']);
-
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
     ?>
     <div class="wrap" style="margin: 10px;">
         <h1>七牛云 Kodo 设置 <span style="font-size: 13px;">当前版本：<?php echo KODO_VERSION; ?></span></h1>
@@ -533,7 +534,7 @@ function kodo_setting_page()
                         <legend>空间名称</legend>
                     </th>
                     <td>
-                        <input type="text" name="bucket" value="<?php echo $kodo_bucket; ?>" size="50" placeholder="请填写空间名称"/>
+                        <input type="text" name="bucket" value="<?php echo esc_attr($kodo_options['bucket']); ?>" size="50" placeholder="请填写空间名称"/>
                         <p>请先访问 <a href="https://portal.qiniu.com/kodo/bucket?shouldCreateBucket=true" target="_blank">七牛云控制台</a> 创建<code>存储空间</code>，再填写以上内容。</p>
                     </td>
                 </tr>
@@ -541,14 +542,14 @@ function kodo_setting_page()
                     <th>
                         <legend>accessKey</legend>
                     </th>
-                    <td><input type="text" name="accessKey" value="<?php echo $kodo_access_key; ?>" size="50" placeholder="accessKey"/></td>
+                    <td><input type="text" name="accessKey" value="<?php echo esc_attr($kodo_options['accessKey']); ?>" size="50" placeholder="accessKey"/></td>
                 </tr>
                 <tr>
                     <th>
                         <legend>secretKey</legend>
                     </th>
                     <td>
-                        <input type="text" name="secretKey" value="<?php echo $kodo_secret_key; ?>" size="50" placeholder="secretKey"/>
+                        <input type="text" name="secretKey" value="<?php echo esc_attr($kodo_options['secretKey']); ?>" size="50" placeholder="secretKey"/>
                     </td>
                 </tr>
                 <tr>
@@ -574,7 +575,7 @@ function kodo_setting_page()
                         <legend>本地文件夹</legend>
                     </th>
                     <td>
-                        <input type="text" name="upload_path" value="<?php echo $upload_path; ?>" size="50" placeholder="请输入上传文件夹"/>
+                        <input type="text" name="upload_path" value="<?php echo kodo_get_option('upload_path'); ?>" size="50" placeholder="请输入上传文件夹"/>
                         <p>附件在服务器上的存储位置，例如： <code>wp-content/uploads</code> （注意不要以“/”开头和结尾），根目录请输入<code>.</code>。</p>
                     </td>
                 </tr>
@@ -583,7 +584,7 @@ function kodo_setting_page()
                         <legend>URL前缀</legend>
                     </th>
                     <td>
-                        <input type="text" name="upload_url_path" value="<?php echo $upload_url_path; ?>" size="50" placeholder="请输入URL前缀"/>
+                        <input type="text" name="upload_url_path" value="<?php echo kodo_get_option('upload_url_path'); ?>" size="50" placeholder="请输入URL前缀"/>
 
                         <p><b>注意：</b></p>
 
@@ -599,11 +600,11 @@ function kodo_setting_page()
                         <legend>图片样式</legend>
                     </th>
                     <td>
-                        <input type="text" name="image_style" value="<?php echo $kodo_image_style; ?>" size="50" placeholder="请输入图片样式，留空表示不处理"/>
+                        <input type="text" name="image_style" value="<?php echo esc_attr($kodo_options['image_style']); ?>" size="50" placeholder="请输入图片样式，留空表示不处理"/>
 
                         <p><b>获取图片样式：</b></p>
 
-                        <p>1）在 <a href="https://portal.qiniu.com/kodo/bucket/image-style?bucketName=<?php echo $kodo_bucket; ?>" target="_blank">空间管理</a> 中对应空间的 <code>图片样式</code> 处添加。</p>
+                        <p>1）在 <a href="https://portal.qiniu.com/kodo/bucket/image-style?bucketName=<?php echo esc_attr($kodo_options['bucket']); ?>" target="_blank">空间管理</a> 中对应空间的 <code>图片样式</code> 处添加。</p>
 
                         <p>2）填写时需要将<code>分隔符</code>和对应的<code>名称</code>或 <code>处理接口</code>进行拼接，例如：</p>
 
