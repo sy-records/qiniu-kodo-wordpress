@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.3.0
+Version: 1.3.1
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.3.0');
+define('KODO_VERSION', '1.3.1');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -479,7 +479,7 @@ function kodo_setting_page()
         foreach ($sync as $k) {
             kodo_file_upload($k['key'], $k['filepath']);
         }
-        echo esc_html('<div class="updated"><p><strong>本次操作成功同步' . count($sync) . '个文件</strong></p></div>');
+        echo '<div class="updated"><p><strong>本次操作成功同步' . count($sync) . '个文件</strong></p></div>';
     }
 
     // 替换数据库链接
@@ -495,7 +495,7 @@ function kodo_setting_page()
         $postmeta_name = $wpdb->prefix .'postmeta';
         $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url') ");
 
-        echo esc_html('<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>');
+        echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
     }
 
     // 若$options不为空数组，则更新数据
@@ -508,7 +508,7 @@ function kodo_setting_page()
         update_option('upload_path', $upload_path);
         $upload_url_path = sanitize_text_field(trim(stripslashes($_POST['upload_url_path']), '/'));
         update_option('upload_url_path', $upload_url_path);
-        echo esc_html('<div class="updated"><p><strong>设置已保存！</strong></p></div>');
+        echo '<div class="updated"><p><strong>设置已保存！</strong></p></div>';
     }
 
     $kodo_options = get_option('kodo_options', true);
