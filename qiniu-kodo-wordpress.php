@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.3.1
+Version: 1.3.2
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.3.1');
+define('KODO_VERSION', '1.3.2');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -39,6 +39,7 @@ function kodo_set_options()
         'nolocalsaving' => 'false', // 是否保留本地备份
         'upload_url_path' => '', // URL前缀
         'image_style' => '',
+        'update_file_name' => 'false', // 是否重命名文件名
     );
     add_option('kodo_options', $options, '', 'yes');
 }
@@ -217,6 +218,8 @@ function kodo_upload_attachments($metadata)
 //避免上传插件/主题时出现同步到kodo的情况
 if (substr_count($_SERVER['REQUEST_URI'], '/update.php') <= 0) {
     add_filter('wp_handle_upload', 'kodo_upload_attachments', 50);
+    add_filter('wp_generate_attachment_metadata', 'kodo_upload_thumbs', 100);
+    add_filter('wp_save_image_editor_file', 'kodo_save_image_editor_file', 101);
 }
 
 /**
@@ -277,9 +280,23 @@ function kodo_upload_thumbs($metadata)
     return $metadata;
 }
 
-//避免上传插件/主题时出现同步到kodo的情况
-if (substr_count($_SERVER['REQUEST_URI'], '/update.php') <= 0) {
-    add_filter('wp_generate_attachment_metadata', 'kodo_upload_thumbs', 100);
+/**
+ * @param $override
+ * @return mixed
+ */
+function kodo_save_image_editor_file($override)
+{
+    add_filter('wp_update_attachment_metadata', 'kodo_image_editor_file_do');
+    return $override;
+}
+
+/**
+ * @param $metadata
+ * @return mixed
+ */
+function kodo_image_editor_file_do($metadata)
+{
+    return kodo_upload_thumbs($metadata);
 }
 
 /**
@@ -302,16 +319,25 @@ function kodo_delete_remote_attachment($post_id)
 
         $deleteObjects[] = str_replace("\\", '/', $file_path);
 
+        $dirname = dirname($file_path) . '/';
+
 //        $is_nothumb = (esc_attr($kodo_options['nothumb']) == 'false');
 //        if ($is_nothumb) {
             // 删除缩略图
             if (!empty($meta['sizes'])) {
                 foreach ($meta['sizes'] as $val) {
-                    $size_file = dirname($file_path) . '/' . $val['file'];
+                    $size_file = $dirname . $val['file'];
                     $deleteObjects[] = str_replace("\\", '/', $size_file);
                 }
             }
 //        }
+
+        $backup_sizes = get_post_meta($post_id, '_wp_attachment_backup_sizes', true);
+        if (is_array($backup_sizes)) {
+            foreach ($backup_sizes as $size) {
+                $deleteObjects[] = str_replace("\\", '/', $dirname . $size['file']);
+            }
+        }
 
         kodo_delete_files($kodo_options['bucket'], $deleteObjects);
     } else {
@@ -348,6 +374,21 @@ function kodo_modefiy_img_url($url, $post_id)
 if (kodo_get_option('upload_path') == '.') {
     add_filter('wp_get_attachment_url', 'kodo_modefiy_img_url', 30, 2);
 }
+
+function kodo_sanitize_file_name($filename)
+{
+    $kodo_options = get_option('kodo_options');
+    switch ($kodo_options['update_file_name']) {
+        case 'md5':
+            return  md5($filename) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
+        case 'time':
+            return date('YmdHis', current_time('timestamp'))  . mt_rand(100, 999) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
+        default:
+            return $filename;
+    }
+}
+
+add_filter( 'sanitize_file_name', 'kodo_sanitize_file_name', 10, 1 );
 
 function kodo_function_each(&$array)
 {
@@ -472,6 +513,7 @@ function kodo_setting_page()
             stripslashes($_POST['upload_url_path'])
         ) : '';
         $options['image_style'] = isset($_POST['image_style']) ? sanitize_text_field($_POST['image_style']) : '';
+        $options['update_file_name'] = isset($_POST['update_file_name']) ? sanitize_text_field($_POST['update_file_name']) : 'false';
     }
 
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_all') {
@@ -518,6 +560,8 @@ function kodo_setting_page()
 
     $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']);
     $kodo_nolocalsaving = ($kodo_nolocalsaving == 'true');
+
+    $kodo_update_file_name = esc_attr($kodo_options['update_file_name']);
 
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
     ?>
@@ -569,6 +613,18 @@ function kodo_setting_page()
                         <input type="checkbox" name="nolocalsaving" <?php if ($kodo_nolocalsaving) { echo 'checked="checked"'; } ?> />
                         <p>建议不勾选</p>
                     </td>
+                </tr>
+                <tr>
+                  <th>
+                    <legend>自动重命名文件</legend>
+                  </th>
+                  <td>
+                    <select name="update_file_name">
+                      <option <?php if ($kodo_update_file_name == 'false') {echo 'selected="selected"';} ?> value="false">不处理</option>
+                      <option <?php if ($kodo_update_file_name == 'md5') {echo 'selected="selected"';} ?> value="md5">MD5</option>
+                      <option <?php if ($kodo_update_file_name == 'time') {echo 'selected="selected"';} ?> value="time">时间戳+随机数</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
                     <th>
