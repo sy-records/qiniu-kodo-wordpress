@@ -1,9 +1,9 @@
+*.github
+*.gitignore
 /.git
-/.github
 /.distignore
 /sdk/vendor/qiniu/php-sdk/examples
 /sdk/vendor/qiniu/php-sdk/tests
 /sdk/vendor/qiniu/php-sdk/*.yml
-/sdk/vendor/qiniu/php-sdk/.gitignore
 /sdk/vendor/qiniu/php-sdk/phpunit.xml.dist
 /sdk/composer.lock
