@@ -1,0 +1,14 @@
+name: Deploy to WordPress.org
+on:
+  pull_request:
+  release:
+    types: [ published ]
+jobs:
+  dependency:
+    uses: sy-records/.github/.github/workflows/wordpress-plugin-dependency-install.yaml@main
+    secrets: inherit
+
+  deploy:
+    needs: dependency
+    uses: sy-records/.github/.github/workflows/wordpress-plugin-deploy.yaml@main
+    secrets: inherit
