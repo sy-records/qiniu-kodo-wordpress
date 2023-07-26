@@ -8,6 +8,7 @@
 [![contributors](https://img.shields.io/github/contributors/sy-records/qiniu-kodo-wordpress?color=blue)](https://github.com/sy-records/qiniu-kodo-wordpress/graphs/contributors)
 [![plugin stars](https://img.shields.io/wordpress/plugin/stars/kodo-qiniu)](https://wordpress.org/plugins/kodo-qiniu/)
 [![plugin installs](https://img.shields.io/wordpress/plugin/installs/kodo-qiniu)](https://wordpress.org/plugins/kodo-qiniu/)
+[![Deploy to WordPress.org](https://github.com/sy-records/qiniu-kodo-wordpress/actions/workflows/deploy.yml/badge.svg)](https://github.com/sy-records/qiniu-kodo-wordpress/actions/workflows/deploy.yml)
 
 ## 插件特色
 
