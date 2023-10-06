@@ -31,7 +31,7 @@ register_activation_hook(__FILE__, 'kodo_set_options');
 // 初始化选项
 function kodo_set_options()
 {
-    $options = array(
+    $options = [
         'bucket' => '',
         'accessKey' => '',
         'secretKey' => '',
@@ -40,7 +40,7 @@ function kodo_set_options()
         'upload_url_path' => '', // URL前缀
         'image_style' => '',
         'update_file_name' => 'false', // 是否重命名文件名
-    );
+    ];
     add_option('kodo_options', $options, '', 'yes');
 }
 
@@ -185,7 +185,7 @@ function kodo_get_option($key)
 function kodo_upload_attachments($metadata)
 {
     $mime_types = get_allowed_mime_types();
-    $image_mime_types = array(
+    $image_mime_types = [
         $mime_types['jpg|jpeg|jpe'],
         $mime_types['gif'],
         $mime_types['png'],
@@ -194,7 +194,7 @@ function kodo_upload_attachments($metadata)
         $mime_types['webp'],
         $mime_types['ico'],
         $mime_types['heic'],
-    );
+    ];
 
     // 例如mp4等格式 上传后根据配置选择是否删除 删除后媒体库会显示默认图片 点开内容是正常的
     // 图片在缩略图处理
@@ -369,7 +369,7 @@ add_action('delete_attachment', 'kodo_delete_remote_attachment');
 function kodo_modefiy_img_url($url, $post_id)
 {
     // 移除 ./ 和 项目根路径
-    $url = str_replace(array('./', get_home_path()), array('', ''), $url);
+    $url = str_replace(['./', get_home_path()], '', $url);
     return $url;
 }
 
@@ -390,11 +390,11 @@ function kodo_sanitize_file_name($filename)
     }
 }
 
-add_filter( 'sanitize_file_name', 'kodo_sanitize_file_name', 10, 1 );
+add_filter('sanitize_file_name', 'kodo_sanitize_file_name', 10, 1);
 
 function kodo_function_each(&$array)
 {
-    $res = array();
+    $res = [];
     $key = key($array);
     if ($key !== null) {
         next($array);
@@ -414,8 +414,8 @@ function kodo_read_dir_queue($dir)
 {
     $dd = [];
     if (isset($dir)) {
-        $files = array();
-        $queue = array($dir);
+        $files = [];
+        $queue = [$dir];
         while ($data = kodo_function_each($queue)) {
             $path = $data['value'];
             if (is_dir($path) && $handle = opendir($path)) {
@@ -463,7 +463,7 @@ function kodo_setting_content_style($content)
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $content, $images);
         if (!empty($images) && isset($images[1])) {
             foreach ($images[1] as $item) {
-                if(strpos($item, esc_attr($option['upload_url_path'])) !== false){
+                if (strpos($item, esc_attr($option['upload_url_path'])) !== false) {
                     $content = str_replace($item, $item . esc_attr($option['image_style']), $content);
                 }
             }
@@ -480,7 +480,7 @@ function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $html, $images);
         if (!empty($images) && isset($images[1])) {
             foreach ($images[1] as $item) {
-                if(strpos($item, esc_attr($option['upload_url_path'])) !== false){
+                if (strpos($item, esc_attr($option['upload_url_path'])) !== false) {
                     $html = str_replace($item, $item . esc_attr($option['image_style']), $html);
                 }
             }
@@ -503,7 +503,7 @@ function kodo_setting_page()
     if (!current_user_can('manage_options')) {
         wp_die('Insufficient privileges!');
     }
-    $options = array();
+    $options = [];
     if (!empty($_POST) and $_POST['type'] == 'kodo_set') {
         $options['bucket'] = isset($_POST['bucket']) ? sanitize_text_field($_POST['bucket']) : '';
         $options['accessKey'] = isset($_POST['accessKey']) ? sanitize_text_field($_POST['accessKey']) : '';
@@ -511,9 +511,7 @@ function kodo_setting_page()
         $options['nothumb'] = isset($_POST['nothumb']) ? 'true' : 'false';
         $options['nolocalsaving'] = isset($_POST['nolocalsaving']) ? 'true' : 'false';
         //仅用于插件卸载时比较使用
-        $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(
-            stripslashes($_POST['upload_url_path'])
-        ) : '';
+        $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(stripslashes($_POST['upload_url_path'])) : '';
         $options['image_style'] = isset($_POST['image_style']) ? sanitize_text_field($_POST['image_style']) : '';
         $options['update_file_name'] = isset($_POST['update_file_name']) ? sanitize_text_field($_POST['update_file_name']) : 'false';
     }
@@ -534,16 +532,16 @@ function kodo_setting_page()
         global $wpdb;
         // 文章内容
         $posts_name = $wpdb->prefix .'posts';
-        $posts_result = $wpdb->query("UPDATE $posts_name SET post_content = REPLACE( post_content, '$old_url', '$new_url') ");
+        $posts_result = $wpdb->query("UPDATE $posts_name SET post_content = REPLACE( post_content, '$old_url', '$new_url')");
         // 修改题图之类的
         $postmeta_name = $wpdb->prefix .'postmeta';
-        $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url') ");
+        $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url')");
 
         echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
     }
 
     // 若$options不为空数组，则更新数据
-    if ($options !== array()) {
+    if ($options !== []) {
         //更新数据库
         update_option('kodo_options', $options);
 
