@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.4.1
+Version: 1.4.2
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache 2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.4.1');
+define('KODO_VERSION', '1.4.2');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -180,7 +180,7 @@ function kodo_get_option($key)
  * 上传附件（包括图片的原图）
  *
  * @param  $metadata
- * @return array()
+ * @return array
  */
 function kodo_upload_attachments($metadata)
 {
@@ -191,7 +191,9 @@ function kodo_upload_attachments($metadata)
         $mime_types['png'],
         $mime_types['bmp'],
         $mime_types['tiff|tif'],
+        $mime_types['webp'],
         $mime_types['ico'],
+        $mime_types['heic'],
     );
 
     // 例如mp4等格式 上传后根据配置选择是否删除 删除后媒体库会显示默认图片 点开内容是正常的
@@ -569,9 +571,7 @@ function kodo_setting_page()
         <h1>七牛云 Kodo 设置 <span style="font-size: 13px;">当前版本：<?php echo KODO_VERSION; ?></span></h1>
         <p>如果觉得此插件对你有所帮助，不妨到 <a href="https://github.com/sy-records/qiniu-kodo-wordpress" target="_blank">GitHub</a> 上点个<code>Star</code>，<code>Watch</code>关注更新；<a href="https://go.qq52o.me/qm/ccs" target="_blank">欢迎加入云存储插件交流群，QQ群号：887595381</a>；</p>
         <hr/>
-        <form name="form1" method="post" action="<?php echo wp_nonce_url(
-            './options-general.php?page=' . KODO_BASEFOLDER . '/qiniu-kodo-wordpress.php'
-        ); ?>">
+        <form method="post">
             <table class="form-table">
                 <tr>
                     <th>
@@ -593,7 +593,7 @@ function kodo_setting_page()
                         <legend>secretKey</legend>
                     </th>
                     <td>
-                        <input type="text" name="secretKey" value="<?php echo esc_attr($kodo_options['secretKey']); ?>" size="50" placeholder="secretKey"/>
+                        <input type="password" name="secretKey" value="<?php echo esc_attr($kodo_options['secretKey']); ?>" size="50" placeholder="secretKey"/>
                     </td>
                 </tr>
                 <tr>
@@ -601,7 +601,7 @@ function kodo_setting_page()
                         <legend>不上传缩略图</legend>
                     </th>
                     <td>
-                        <input type="checkbox" name="nothumb" <?php if ($kodo_nothumb) { echo 'checked="checked"'; } ?> />
+                        <input type="checkbox" name="nothumb" <?php echo $kodo_nothumb ? 'checked="checked"' : ''; ?> />
                         <p>建议不勾选</p>
                     </td>
                 </tr>
@@ -610,7 +610,7 @@ function kodo_setting_page()
                         <legend>不在本地保留备份</legend>
                     </th>
                     <td>
-                        <input type="checkbox" name="nolocalsaving" <?php if ($kodo_nolocalsaving) { echo 'checked="checked"'; } ?> />
+                        <input type="checkbox" name="nolocalsaving" <?php echo $kodo_nolocalsaving ? 'checked="checked"' : ''; ?> />
                         <p>建议不勾选</p>
                     </td>
                 </tr>
@@ -620,9 +620,9 @@ function kodo_setting_page()
                   </th>
                   <td>
                     <select name="update_file_name">
-                      <option <?php if ($kodo_update_file_name == 'false') {echo 'selected="selected"';} ?> value="false">不处理</option>
-                      <option <?php if ($kodo_update_file_name == 'md5') {echo 'selected="selected"';} ?> value="md5">MD5</option>
-                      <option <?php if ($kodo_update_file_name == 'time') {echo 'selected="selected"';} ?> value="time">时间戳+随机数</option>
+                      <option <?php echo $kodo_update_file_name == 'false' ? 'selected="selected"' : ''; ?> value="false">不处理</option>
+                      <option <?php echo $kodo_update_file_name == 'md5' ? 'selected="selected"' : ''; ?> value="md5">MD5</option>
+                      <option <?php echo $kodo_update_file_name == 'time' ? 'selected="selected"' : ''; ?> value="time">时间戳+随机数</option>
                     </select>
                   </td>
                 </tr>
@@ -677,9 +677,7 @@ function kodo_setting_page()
             </table>
             <input type="hidden" name="type" value="kodo_set">
         </form>
-        <form name="form2" method="post" action="<?php echo wp_nonce_url(
-            './options-general.php?page=' . KODO_BASEFOLDER . '/qiniu-kodo-wordpress.php'
-        ); ?>">
+        <form method="post">
             <table class="form-table">
                 <tr>
                     <th>
@@ -694,9 +692,7 @@ function kodo_setting_page()
             </table>
         </form>
         <hr>
-        <form name="form3" method="post" action="<?php echo wp_nonce_url(
-            './options-general.php?page=' . KODO_BASEFOLDER . '/qiniu-kodo-wordpress.php'
-        ); ?>">
+        <form method="post">
             <table class="form-table">
                 <tr>
                     <th>
