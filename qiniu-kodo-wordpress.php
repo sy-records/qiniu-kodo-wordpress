@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.4.3
+Version: 1.4.4
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.4.3');
+define('KODO_VERSION', '1.4.4');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -229,6 +229,10 @@ if (substr_count($_SERVER['REQUEST_URI'], '/update.php') <= 0) {
  */
 function kodo_upload_thumbs($metadata)
 {
+    if (empty($metadata['file'])) {
+        return $metadata;
+    }
+
     //获取上传路径
     $wp_uploads = wp_upload_dir();
     $basedir = $wp_uploads['basedir'];
@@ -239,21 +243,19 @@ function kodo_upload_thumbs($metadata)
     $no_local_file = esc_attr($kodo_options['nolocalsaving']) == 'true';
     $no_thumb = esc_attr($kodo_options['nothumb']) == 'true';
 
-    if (!empty($metadata['file'])) {
-        // Maybe there is a problem with the old version
-        $file = $basedir . '/' . $metadata['file'];
-        if ($upload_path != '.') {
-            $path_array = explode($upload_path, $file);
-            if (count($path_array) >= 2) {
-                $object = '/' . $upload_path . end($path_array);
-            }
-        } else {
-            $object = '/' . $metadata['file'];
-            $file = str_replace('./', '', $file);
+    // Maybe there is a problem with the old version
+    $file = $basedir . '/' . $metadata['file'];
+    if ($upload_path != '.') {
+        $path_array = explode($upload_path, $file);
+        if (count($path_array) >= 2) {
+            $object = '/' . $upload_path . end($path_array);
         }
-
-        kodo_file_upload($object, $file, $no_local_file);
+    } else {
+        $object = '/' . $metadata['file'];
+        $file = str_replace('./', '', $file);
     }
+
+    kodo_file_upload($object, $file, $no_local_file);
 
     //得到本地文件夹和远端文件夹
     $dirname = dirname($metadata['file']);

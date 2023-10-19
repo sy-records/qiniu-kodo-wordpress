@@ -5,7 +5,7 @@ Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.2
 Tested up to: 6.3
 Requires PHP: 7.0
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: Apache2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
