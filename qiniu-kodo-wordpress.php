@@ -232,12 +232,16 @@ function kodo_upload_thumbs($metadata)
     //获取上传路径
     $wp_uploads = wp_upload_dir();
     $basedir = $wp_uploads['basedir'];
+    $upload_path = kodo_get_option('upload_path');
+
     //获取kodo插件的配置信息
     $kodo_options = get_option('kodo_options', true);
+    $no_local_file = esc_attr($kodo_options['nolocalsaving']) == 'true';
+    $no_thumb = esc_attr($kodo_options['nothumb']) == 'true';
+
     if (!empty($metadata['file'])) {
         // Maybe there is a problem with the old version
         $file = $basedir . '/' . $metadata['file'];
-        $upload_path = kodo_get_option('upload_path');
         if ($upload_path != '.') {
             $path_array = explode($upload_path, $file);
             if (count($path_array) >= 2) {
@@ -248,27 +252,30 @@ function kodo_upload_thumbs($metadata)
             $file = str_replace('./', '', $file);
         }
 
-        kodo_file_upload($object, $file, (esc_attr($kodo_options['nolocalsaving']) == 'true'));
+        kodo_file_upload($object, $file, $no_local_file);
     }
+
+    //得到本地文件夹和远端文件夹
+    $dirname = dirname($metadata['file']);
+    $file_path = $dirname != '.' ? "{$basedir}/{$dirname}/" : "{$basedir}/";
+    $file_path = str_replace("\\", '/', $file_path);
+    if ($upload_path == '.') {
+        $file_path = str_replace('./', '', $file_path);
+    }
+    $object_path = str_replace(get_home_path(), '', $file_path);
+
+    if (!empty($metadata['original_image'])) {
+        kodo_file_upload("/{$object_path}{$metadata['original_image']}", "{$file_path}{$metadata['original_image']}", $no_local_file);
+    }
+
+    //如果禁止上传缩略图，就不用继续执行了
+    if ($no_thumb) {
+        return $metadata;
+    }
+
     //上传所有缩略图
     if (!empty($metadata['sizes'])) {
-        //是否需要上传缩略图
-        $nothumb = (esc_attr($kodo_options['nothumb']) == 'true');
-        //如果禁止上传缩略图，就不用继续执行了
-        if ($nothumb) {
-            return $metadata;
-        }
-        //得到本地文件夹和远端文件夹
-        $dirname = dirname($metadata['file']);
-        $file_path = $dirname != '.' ? "{$basedir}/{$dirname}/" : "{$basedir}/";
-        $file_path = str_replace("\\", '/', $file_path);
-        if (kodo_get_option('upload_path') == '.') {
-            $file_path = str_replace('./', '', $file_path);
-        }
-
-        $object_path = str_replace(get_home_path(), '', $file_path);
-
-        //there may be duplicated filenames,so ....
+        //there may be duplicated filenames
         foreach ($metadata['sizes'] as $val) {
             //生成object在kodo中的存储路径
             $object = '/' . $object_path . $val['file'];
@@ -276,9 +283,10 @@ function kodo_upload_thumbs($metadata)
             $file = $file_path . $val['file'];
 
             //执行上传操作
-            kodo_file_upload($object, $file, (esc_attr($kodo_options['nolocalsaving']) == 'true'));
+            kodo_file_upload($object, $file, $no_local_file);
         }
     }
+
     return $metadata;
 }
 
@@ -323,6 +331,11 @@ function kodo_delete_remote_attachment($post_id)
 
         $dirname = dirname($file_path) . '/';
 
+        // 超大图原图
+        if (!empty($meta['original_image'])) {
+            $deleteObjects[] = ['Key' => str_replace("\\", '/', $dirname . $meta['original_image'])];
+        }
+
         // 删除缩略图
         if (!empty($meta['sizes'])) {
             foreach ($meta['sizes'] as $val) {
@@ -366,8 +379,7 @@ add_action('delete_attachment', 'kodo_delete_remote_attachment');
 function kodo_modefiy_img_url($url, $post_id)
 {
     // 移除 ./ 和 项目根路径
-    $url = str_replace(['./', get_home_path()], '', $url);
-    return $url;
+    return str_replace(['./', get_home_path()], '', $url);
 }
 
 if (kodo_get_option('upload_path') == '.') {
@@ -476,7 +488,7 @@ function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
 // 在导航栏“设置”中添加条目
 function kodo_add_setting_page()
 {
-    add_options_page('七牛云Kodo设置', '七牛云Kodo设置', 'manage_options', __FILE__, 'kodo_setting_page');
+    add_options_page('七牛云 KODO', '七牛云 KODO', 'manage_options', __FILE__, 'kodo_setting_page');
 }
 
 add_action('admin_menu', 'kodo_add_setting_page');
@@ -550,7 +562,7 @@ function kodo_setting_page()
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
 ?>
     <div class="wrap" style="margin: 10px;">
-        <h1>七牛云 Kodo 设置 <span style="font-size: 13px;">当前版本：<?php echo KODO_VERSION; ?></span></h1>
+        <h1>七牛云 KODO <span style="font-size: 13px;">当前版本：<?php echo KODO_VERSION; ?></span></h1>
         <p>如果觉得此插件对你有所帮助，不妨到 <a href="https://github.com/sy-records/qiniu-kodo-wordpress" target="_blank">GitHub</a> 上点个<code>Star</code>，<code>Watch</code>关注更新；<a href="https://go.qq52o.me/qm/ccs" target="_blank">欢迎加入云存储插件交流群，QQ群号：887595381</a>；</p>
         <hr/>
         <form method="post">
