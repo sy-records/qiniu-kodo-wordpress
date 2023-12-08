@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.4.4
+Version: 1.4.5
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.4.4');
+define('KODO_VERSION', '1.4.5');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -159,9 +159,13 @@ function kodo_delete_file($file)
  */
 function kodo_delete_files($bucket, array $files)
 {
-    $bucketManager = new BucketManager(kodo_get_auth());
+    $deleteObjects = [];
+    foreach ($files as $file) {
+        $deleteObjects[] = str_replace(["\\", './'], ['/', ''], $file);
+    }
 
-    $ops = $bucketManager->buildBatchDelete($bucket, $files);
+    $bucketManager = new BucketManager(kodo_get_auth());
+    $ops = $bucketManager->buildBatchDelete($bucket, $deleteObjects);
     $bucketManager->batch($ops);
 //    list($ret, $err) = $bucketManager->batch($ops);
 //    if ($err) {
@@ -319,37 +323,35 @@ function kodo_delete_remote_attachment($post_id)
 {
     $meta = wp_get_attachment_metadata($post_id);
     $kodo_options = get_option('kodo_options', true);
+    $upload_path = kodo_get_option('upload_path');
+    if ($upload_path == '') {
+        $upload_path = 'wp-content/uploads';
+    }
 
     if (!empty($meta['file'])) {
         $deleteObjects = [];
         // meta['file']的格式为 "2020/01/wp-bg.png"
-        $upload_path = kodo_get_option('upload_path');
-        if ($upload_path == '') {
-            $upload_path = 'wp-content/uploads';
-        }
         $file_path = $upload_path . '/' . $meta['file'];
-
-        $deleteObjects[] = str_replace("\\", '/', $file_path);
-
         $dirname = dirname($file_path) . '/';
+
+        $deleteObjects[] = $file_path;
 
         // 超大图原图
         if (!empty($meta['original_image'])) {
-            $deleteObjects[] = ['Key' => str_replace("\\", '/', $dirname . $meta['original_image'])];
+            $deleteObjects[] = $dirname . $meta['original_image'];
         }
 
         // 删除缩略图
         if (!empty($meta['sizes'])) {
             foreach ($meta['sizes'] as $val) {
-                $size_file = $dirname . $val['file'];
-                $deleteObjects[] = str_replace("\\", '/', $size_file);
+                $deleteObjects[] = $dirname . $val['file'];
             }
         }
 
         $backup_sizes = get_post_meta($post_id, '_wp_attachment_backup_sizes', true);
         if (is_array($backup_sizes)) {
             foreach ($backup_sizes as $size) {
-                $deleteObjects[] = str_replace("\\", '/', $dirname . $size['file']);
+                $deleteObjects[] = $dirname . $size['file'];
             }
         }
 
@@ -453,16 +455,39 @@ function kodo_plugin_action_links($links, $file)
 
 add_filter('plugin_action_links', 'kodo_plugin_action_links', 10, 2);
 
+function kodo_custom_image_srcset($sources, $size_array, $image_src, $image_meta, $attachment_id)
+{
+    $option = get_option('kodo_options');
+    $style = !empty($option['image_style']) ? esc_attr($option['image_style']) : '';
+    $upload_url_path = esc_attr($option['upload_url_path']);
+    if (empty($style)) {
+        return $sources;
+    }
+
+    foreach ($sources as $index => $source) {
+        if (strpos($source['url'], $upload_url_path) !== false && strpos($source['url'], $style) === false) {
+            $sources[$index]['url'] .= $style;
+        }
+    }
+
+    return $sources;
+}
+
+add_filter('wp_calculate_image_srcset', 'kodo_custom_image_srcset', 10, 5);
+
 add_filter('the_content', 'kodo_setting_content_style');
 function kodo_setting_content_style($content)
 {
     $option = get_option('kodo_options');
-    if (!empty(esc_attr($option['image_style']))) {
+    $upload_url_path = esc_attr($option['upload_url_path']);
+    $style = esc_attr($option['image_style']);
+    if (!empty($style)) {
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $content, $images);
         if (!empty($images) && isset($images[1])) {
+            $images[1] = array_unique($images[1]);
             foreach ($images[1] as $item) {
-                if (strpos($item, esc_attr($option['upload_url_path'])) !== false) {
-                    $content = str_replace($item, $item . esc_attr($option['image_style']), $content);
+                if (strpos($item, $upload_url_path) !== false && strpos($item, $style) === false) {
+                    $content = str_replace($item, $item . $style, $content);
                 }
             }
         }
@@ -474,12 +499,15 @@ add_filter('post_thumbnail_html', 'kodo_setting_post_thumbnail_style', 10, 3);
 function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
 {
     $option = get_option('kodo_options');
-    if (!empty(esc_attr($option['image_style'])) && has_post_thumbnail()) {
+    $upload_url_path = esc_attr($option['upload_url_path']);
+    $style = esc_attr($option['image_style']);
+    if (!empty($style) && has_post_thumbnail()) {
         preg_match_all('/<img.*?(?: |\\t|\\r|\\n)?src=[\'"]?(.+?)[\'"]?(?:(?: |\\t|\\r|\\n)+.*?)?>/sim', $html, $images);
         if (!empty($images) && isset($images[1])) {
+            $images[1] = array_unique($images[1]);
             foreach ($images[1] as $item) {
-                if (strpos($item, esc_attr($option['upload_url_path'])) !== false) {
-                    $html = str_replace($item, $item . esc_attr($option['image_style']), $html);
+                if (strpos($item, $upload_url_path) !== false && strpos($item, $style) === false) {
+                    $html = str_replace($item, $item . $style, $html);
                 }
             }
         }
