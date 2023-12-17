@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.4.5
+Version: 1.4.6
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.4.5');
+define('KODO_VERSION', '1.4.6');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -23,7 +23,7 @@ use Qiniu\Storage\UploadManager;
 use Qiniu\Storage\BucketManager;
 
 if (!function_exists('get_home_path')) {
-    require_once(ABSPATH . 'wp-admin/includes/file.php');
+    require_once ABSPATH . 'wp-admin/includes/file.php';
 }
 
 // 初始化选项
@@ -490,6 +490,7 @@ function kodo_setting_content_style($content)
                     $content = str_replace($item, $item . $style, $content);
                 }
             }
+            $content = str_replace($style . $style, $style, $content);
         }
     }
     return $content;
@@ -510,6 +511,7 @@ function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
                     $html = str_replace($item, $item . $style, $html);
                 }
             }
+            $html = str_replace($style . $style, $style, $html);
         }
     }
     return $html;
