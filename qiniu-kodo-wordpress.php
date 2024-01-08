@@ -183,9 +183,9 @@ function kodo_get_option($key)
 
 $kodo_options = get_option('kodo_options', true);
 if (isset($kodo_options['origin_protect']) && esc_attr($kodo_options['origin_protect']) == 'true' && !empty(esc_attr($kodo_options['image_style']))) {
-    add_filter('wp_get_attachment_url', 'kodo_add_suffix_to_attachment_url');
-    add_filter('wp_get_attachment_thumb_url', 'kodo_add_suffix_to_attachment_url');
-    add_filter('wp_get_original_image_url', 'kodo_add_suffix_to_attachment_url');
+    add_filter('wp_get_attachment_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
+    add_filter('wp_get_attachment_thumb_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
+    add_filter('wp_get_original_image_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
     add_filter('wp_prepare_attachment_for_js', 'kodo_add_suffix_to_attachment', 10, 2);
     add_filter('image_get_intermediate_size', 'kodo_add_suffix_for_media_send_to_editor');
 }
