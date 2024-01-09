@@ -27,9 +27,10 @@ License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 5. 支持七牛云海量存储系统 KODO 完整地域使用
 6. 支持同步历史附件到七牛云海量存储系统 KODO
 7. 支持七牛云图片样式
-8. 支持媒体库编辑
-9. 支持上传文件自动重命名
-10. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
+8. 支持七牛云原图保护
+9. 支持媒体库编辑
+10. 支持上传文件自动重命名
+11. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
 
 ## 其他插件
 
