@@ -786,6 +786,7 @@ function kodo_setting_page()
                   <td>
                     <input type="checkbox" name="origin_protect" <?php echo $kodo_origin_protect ? 'checked="checked"' : ''; ?> />
                     <p>在七牛云启用原图保护后勾选启用，需要先配置图片样式。</p>
+                    <p>注：此功能为实验性功能，如遇错误或不可用，请关闭后联系作者反馈。</p>
                   </td>
                 </tr>
                 <tr>
