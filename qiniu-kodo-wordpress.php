@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.4.6
+Version: 1.5.0
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.4.6');
+define('KODO_VERSION', '1.5.0');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -39,6 +39,7 @@ function kodo_set_options()
         'nolocalsaving' => 'false', // 是否保留本地备份
         'upload_url_path' => '', // URL前缀
         'image_style' => '',
+        'origin_protect' => 'false', // 原图保护
         'update_file_name' => 'false', // 是否重命名文件名
     ];
     add_option('kodo_options', $options, '', 'yes');
@@ -178,6 +179,91 @@ function kodo_delete_files($bucket, array $files)
 function kodo_get_option($key)
 {
     return esc_attr(get_option($key));
+}
+
+$kodo_options = get_option('kodo_options', true);
+if (isset($kodo_options['origin_protect']) && esc_attr($kodo_options['origin_protect']) == 'true' && !empty(esc_attr($kodo_options['image_style']))) {
+    add_filter('wp_get_attachment_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
+    add_filter('wp_get_attachment_thumb_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
+    add_filter('wp_get_original_image_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
+    add_filter('wp_prepare_attachment_for_js', 'kodo_add_suffix_to_attachment', 10, 2);
+    add_filter('image_get_intermediate_size', 'kodo_add_suffix_for_media_send_to_editor');
+}
+
+/**
+ * @param string $url
+ * @param int $post_id
+ * @return string
+ */
+function kodo_add_suffix_to_attachment_url($url, $post_id)
+{
+    if (kodo_is_image_type($url)) {
+        $url .= kodo_get_image_style();
+    }
+
+    return $url;
+}
+
+/**
+ * @param array $response
+ * @param array $attachment
+ * @return array
+ */
+function kodo_add_suffix_to_attachment($response, $attachment)
+{
+    if ($response['type'] != 'image') {
+        return $response;
+    }
+
+    $style = kodo_get_image_style();
+    if (!empty($response['sizes'])) {
+        foreach ($response['sizes'] as $size_key => $size_file) {
+            if (kodo_is_image_type($size_file['url'])) {
+                $response['sizes'][$size_key]['url'] .= $style;
+            }
+        }
+    }
+
+    if(!empty($response['originalImageURL'])) {
+        if (kodo_is_image_type($response['originalImageURL'])) {
+            $response['originalImageURL'] .= $style;
+        }
+    }
+
+    return $response;
+}
+
+/**
+ * @param array $data
+ * @return array
+ */
+function kodo_add_suffix_for_media_send_to_editor($data)
+{
+    // https://github.com/WordPress/wordpress-develop/blob/43d2455dc68072fdd43c3c800cc8c32590f23cbe/src/wp-includes/media.php#L239
+    if (kodo_is_image_type($data['file'])) {
+        $data['file'] .= kodo_get_image_style();
+    }
+
+    return $data;
+}
+
+/**
+ * @param string $url
+ * @return bool
+ */
+function kodo_is_image_type($url)
+{
+    return (bool) preg_match('/\.(jpg|jpeg|jpe|gif|png|bmp|tiff|tif|webp|ico|heic)$/i', $url);
+}
+
+/**
+ * @return string
+ */
+function kodo_get_image_style()
+{
+    $kodo_options = get_option('kodo_options', true);
+
+    return esc_attr($kodo_options['image_style']);
 }
 
 /**
@@ -538,6 +624,7 @@ function kodo_setting_page()
         $options['secretKey'] = isset($_POST['secretKey']) ? sanitize_text_field($_POST['secretKey']) : '';
         $options['nothumb'] = isset($_POST['nothumb']) ? 'true' : 'false';
         $options['nolocalsaving'] = isset($_POST['nolocalsaving']) ? 'true' : 'false';
+        $options['origin_protect'] = isset($_POST['origin_protect']) ? 'true' : 'false';
         //仅用于插件卸载时比较使用
         $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(stripslashes($_POST['upload_url_path'])) : '';
         $options['image_style'] = isset($_POST['image_style']) ? sanitize_text_field($_POST['image_style']) : '';
@@ -583,11 +670,9 @@ function kodo_setting_page()
 
     $kodo_options = get_option('kodo_options', true);
 
-    $kodo_nothumb = esc_attr($kodo_options['nothumb']);
-    $kodo_nothumb = ($kodo_nothumb == 'true');
-
-    $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']);
-    $kodo_nolocalsaving = ($kodo_nolocalsaving == 'true');
+    $kodo_nothumb = esc_attr($kodo_options['nothumb']) == 'true';
+    $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']) == 'true';
+    $kodo_origin_protect = esc_attr($kodo_options['origin_protect'] ?? '') == 'true';
 
     $kodo_update_file_name = esc_attr($kodo_options['update_file_name']);
 
@@ -693,6 +778,16 @@ function kodo_setting_page()
                         <p><code>分隔符</code>为<code>!</code>(感叹号)，<code>名称</code>为<code>webp</code>，<code>处理接口</code>为 <code>imageView2/0/format/webp/q/75</code></p>
                         <p>则填写为 <code>!webp</code> 或 <code>?imageView2/0/format/webp/q/75</code></p>
                     </td>
+                </tr>
+                <tr>
+                  <th>
+                    <legend>原图保护</legend>
+                  </th>
+                  <td>
+                    <input type="checkbox" name="origin_protect" <?php echo $kodo_origin_protect ? 'checked="checked"' : ''; ?> />
+                    <p>在七牛云启用原图保护后勾选启用，需要先配置图片样式。</p>
+                    <p>注：此功能为实验性功能，如遇错误或不可用，请关闭后联系作者反馈。</p>
+                  </td>
                 </tr>
                 <tr>
                     <th>
