@@ -5,7 +5,7 @@ Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.2
 Tested up to: 6.4
 Requires PHP: 7.0
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: Apache2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -34,7 +34,7 @@ License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
 ## 其他插件
 
-腾讯云 COS：[GitHub](https://github.com/sy-records/wordpress-qcloud-cos)，[WordPress Plugins](https://wordpress.org/plugins/sync-qcloud-cos)
+腾讯云 COS：[GitHub](https://github.com/sy-records/sync-qcloud-cos)，[WordPress Plugins](https://wordpress.org/plugins/sync-qcloud-cos)
 华为云 OBS：[GitHub](https://github.com/sy-records/huaweicloud-obs-wordpress)，[WordPress Plugins](https://wordpress.org/plugins/obs-huaweicloud)
 阿里云 OSS：[GitHub](https://github.com/sy-records/aliyun-oss-wordpress)，[WordPress Plugins](https://wordpress.org/plugins/oss-aliyun)
 又拍云 USS：[GitHub](https://github.com/sy-records/upyun-uss-wordpress)，[WordPress Plugins](https://wordpress.org/plugins/uss-upyun)
@@ -63,6 +63,10 @@ QQ 交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.5.1 =
+
+- Fix CSRF error
 
 = 1.5.0 =
 

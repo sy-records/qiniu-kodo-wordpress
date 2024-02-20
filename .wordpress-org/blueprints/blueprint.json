@@ -1,0 +1,27 @@
+{
+  "landingPage": "/wp-admin/admin.php?page=kodo-qiniu%2Fqiniu-kodo-wordpress.php",
+  "preferredVersions": {
+    "php": "latest",
+    "wp": "latest"
+  },
+  "phpExtensionBundles": [
+    "kitchen-sink"
+  ],
+  "steps": [
+    {
+      "step": "login",
+      "username": "admin",
+      "password": "password"
+    },
+    {
+      "step": "installPlugin",
+      "pluginZipFile": {
+        "resource": "wordpress.org/plugins",
+        "slug": "kodo-qiniu"
+      },
+      "options": {
+        "activate": true
+      }
+    }
+  ]
+}

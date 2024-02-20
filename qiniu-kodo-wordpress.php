@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.0
+Version: 1.5.1
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.5.0');
+define('KODO_VERSION', '1.5.1');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -641,18 +641,26 @@ function kodo_setting_page()
 
     // 替换数据库链接
     if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_replace') {
+        $nonce = $_POST['qiniu_kodo_replace-nonce'] ?? '';
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'qiniu_kodo_replace')) {
+            wp_die('Illegal requests!');
+        }
+
         $old_url = esc_url_raw($_POST['old_url']);
         $new_url = esc_url_raw($_POST['new_url']);
+        if (!empty($old_url) && !empty($new_url)) {
+            global $wpdb;
+            // 文章内容
+            $posts_name = $wpdb->prefix . 'posts';
+            $posts_result = $wpdb->query("UPDATE $posts_name SET post_content = REPLACE( post_content, '$old_url', '$new_url')");
+            // 修改题图之类的
+            $postmeta_name = $wpdb->prefix . 'postmeta';
+            $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url')");
 
-        global $wpdb;
-        // 文章内容
-        $posts_name = $wpdb->prefix . 'posts';
-        $posts_result = $wpdb->query("UPDATE $posts_name SET post_content = REPLACE( post_content, '$old_url', '$new_url')");
-        // 修改题图之类的
-        $postmeta_name = $wpdb->prefix . 'postmeta';
-        $postmeta_result = $wpdb->query("UPDATE $postmeta_name SET meta_value = REPLACE( meta_value, '$old_url', '$new_url')");
-
-        echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
+            echo '<div class="updated"><p><strong>替换成功！共替换文章内链'.$posts_result.'条、题图链接'.$postmeta_result.'条！</strong></p></div>';
+        } else {
+            echo '<div class="error"><p><strong>请填写资源链接URL地址！</strong></p></div>';
+        }
     }
 
     // 若$options不为空数组，则更新数据
@@ -836,6 +844,7 @@ function kodo_setting_page()
                         <legend></legend>
                     </th>
                     <input type="hidden" name="type" value="qiniu_kodo_replace">
+                    <?php wp_nonce_field('qiniu_kodo_replace', 'qiniu_kodo_replace-nonce'); ?>
                     <td>
                         <input type="submit" class="button button-secondary" value="开始替换"/>
                         <p><b>注意：如果是首次替换，请注意备份！此功能会替换文章以及设置的特色图片（题图）等使用的资源链接</b></p>
