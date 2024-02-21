@@ -44,6 +44,6 @@ GitHub 下载节点：[https://github.com/sy-records/qiniu-kodo-wordpress/releas
 
 ## 插件截图
 
-![设置页面](./wordpress-org/screenshot-1.png)
+![设置页面](.wordpress-org/screenshot-1.png)
 
-![数据库替换](./wordpress-org/screenshot-2.png)
+![数据库替换](.wordpress-org/screenshot-2.png)
