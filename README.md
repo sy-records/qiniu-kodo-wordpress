@@ -10,6 +10,8 @@
 [![plugin installs](https://img.shields.io/wordpress/plugin/installs/kodo-qiniu)](https://wordpress.org/plugins/kodo-qiniu/)
 [![Deploy to WordPress.org](https://github.com/sy-records/qiniu-kodo-wordpress/actions/workflows/deploy.yml/badge.svg)](https://github.com/sy-records/qiniu-kodo-wordpress/actions/workflows/deploy.yml)
 
+> 使用 WordPress Playground 在线预览 [KODO Qiniu](https://wordpress.org/plugins/kodo-qiniu/?preview=1) 插件
+
 ## 插件特色
 
 - [x] 可配置是否上传缩略图和是否保留本地备份
@@ -38,10 +40,10 @@ GitHub 下载节点：[https://github.com/sy-records/qiniu-kodo-wordpress/releas
 ## 修改配置
 
 - 方法一：在 WordPress 插件管理页面有设置按钮，进行设置
-- 方法二：在 WordPress 后台管理左侧导航栏`设置`下`七牛云Kodo设置`，点击进入设置页面
+- 方法二：在 WordPress 后台管理左侧导航栏`设置`下`七牛云 KODO`，点击进入设置页面
 
 ## 插件截图
 
-![设置页面](screenshot-1.png)
+![设置页面](./wordpress-org/screenshot-1.png)
 
-![update-wordpress-posts-photos.png](screenshot-2.png)
+![数据库替换](./wordpress-org/screenshot-2.png)
