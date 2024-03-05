@@ -7,4 +7,5 @@
 /.git
 /.distignore
 /sdk/vendor/qiniu/php-sdk/phpunit.xml.dist
+/sdk/vendor/qiniu/php-sdk/test-env.sh
 /sdk/composer.lock
