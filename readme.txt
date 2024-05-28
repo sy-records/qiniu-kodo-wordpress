@@ -2,8 +2,8 @@
 Contributors: shenyanzhi
 Donate link: https://qq52o.me/sponsor.html
 Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
-Requires at least: 4.2
-Tested up to: 4.6
+Requires at least: 4.6
+Tested up to: 6.5
 Requires PHP: 7.0
 Stable tag: 1.5.2
 License: Apache2.0
