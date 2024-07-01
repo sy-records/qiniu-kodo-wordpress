@@ -274,7 +274,7 @@ function kodo_get_image_style()
  */
 function kodo_upload_attachments($metadata)
 {
-    $mime_types = get_allowed_mime_types();
+    $mime_types = wp_get_mime_types();
     $image_mime_types = [
         $mime_types['jpg|jpeg|jpe'],
         $mime_types['gif'],
@@ -283,7 +283,6 @@ function kodo_upload_attachments($metadata)
         $mime_types['tiff|tif'],
         $mime_types['webp'],
         $mime_types['ico'],
-        $mime_types['heic'],
     ];
 
     // 例如mp4等格式 上传后根据配置选择是否删除 删除后媒体库会显示默认图片 点开内容是正常的
