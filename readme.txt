@@ -4,8 +4,8 @@ Donate link: https://qq52o.me/sponsor.html
 Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.6
 Tested up to: 6.5
-Requires PHP: 7.0
-Stable tag: 1.5.2
+Requires PHP: 7.1
+Stable tag: 1.5.3
 License: Apache2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -63,6 +63,12 @@ QQ 交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.5.3 =
+
+- 修复原图保护开启后媒体库图片重复追加规则
+- 不再支持 PHP7.0
+- 修复 heic 格式图片上传
 
 = 1.5.2 =
 
