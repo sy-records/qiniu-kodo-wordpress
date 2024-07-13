@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.2
+Version: 1.5.3
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.5.2');
+define('KODO_VERSION', '1.5.3');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -93,12 +93,10 @@ function kodo_file_upload($object, $file, $no_local_file = false)
     $uploadMgr = new UploadManager();
     // 调用 UploadManager 的 putFile 方法进行文件的上传。
     $uploadMgr->putFile($token, $key, $filePath);
-//    list($ret, $err) = $uploadMgr->putFile($token, $key, $filePath);
-//    if ($err !== null) {
-//        var_dump($err);
-//    } else {
-//        var_dump($ret);
-//    }
+    [$_, $err] = $uploadMgr->putFile($token, $key, $filePath);
+    if ($err !== null) {
+        error_log($err->message());
+    }
     if ($no_local_file) {
         kodo_delete_local_file($file);
     }
@@ -149,8 +147,10 @@ function kodo_delete_file($file)
 {
     $bucket = kodo_get_bucket_name();
     $bucketManager = new BucketManager(kodo_get_auth());
-    $err = $bucketManager->delete($bucket, $file);
-//    var_dump($err);
+    [$_, $err] = $bucketManager->delete($bucket, $file);
+    if ($err !== null) {
+        error_log($err->message());
+    }
 }
 
 /**
@@ -167,13 +167,10 @@ function kodo_delete_files($bucket, array $files)
 
     $bucketManager = new BucketManager(kodo_get_auth());
     $ops = $bucketManager->buildBatchDelete($bucket, $deleteObjects);
-    $bucketManager->batch($ops);
-//    list($ret, $err) = $bucketManager->batch($ops);
-//    if ($err) {
-//        print_r($err);
-//    } else {
-//        print_r($ret);
-//    }
+    [$_, $err] = $bucketManager->batch($ops);
+    if ($err !== null) {
+        error_log($err->message());
+    }
 }
 
 function kodo_get_option($key)
@@ -218,14 +215,14 @@ function kodo_add_suffix_to_attachment($response, $attachment)
     $style = kodo_get_image_style();
     if (!empty($response['sizes'])) {
         foreach ($response['sizes'] as $size_key => $size_file) {
-            if (kodo_is_image_type($size_file['url'])) {
+            if (kodo_is_image_type($size_file['url']) && strpos($size_file['url'], $style) === false) {
                 $response['sizes'][$size_key]['url'] .= $style;
             }
         }
     }
 
     if(!empty($response['originalImageURL'])) {
-        if (kodo_is_image_type($response['originalImageURL'])) {
+        if (kodo_is_image_type($response['originalImageURL']) && strpos($response['originalImageURL'], $style) === false) {
             $response['originalImageURL'] .= $style;
         }
     }
@@ -503,7 +500,7 @@ function kodo_read_dir_queue($homePath, $uploadPath)
     $foundFiles = [];
 
     while (!$dirsToProcess->isEmpty()) {
-        list($currentDir, $relativeDir) = $dirsToProcess->dequeue();
+        [$currentDir, $relativeDir] = $dirsToProcess->dequeue();
 
         foreach (new DirectoryIterator($currentDir) as $fileInfo) {
             if ($fileInfo->isDot()) continue;
