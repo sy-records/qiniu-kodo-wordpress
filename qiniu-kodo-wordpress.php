@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.3
+Version: 1.5.4
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.5.3');
+define('KODO_VERSION', '1.5.4');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -556,6 +556,44 @@ function kodo_custom_image_srcset($sources, $size_array, $image_src, $image_meta
 }
 
 add_filter('wp_calculate_image_srcset', 'kodo_custom_image_srcset', 10, 5);
+
+add_filter('wp_prepare_attachment_for_js', 'kodo_wp_prepare_attachment_for_js', 10);
+function kodo_wp_prepare_attachment_for_js($response)
+{
+    if (empty($response['filesizeInBytes']) || empty($response['filesizeHumanReadable'])) {
+        $upload_url_path = kodo_get_option('upload_url_path');
+        $upload_path = get_option('upload_path');
+        $object = str_replace($upload_url_path, $upload_path, $response['url']);
+        $meta = kodo_get_file_meta($object);
+        if (!empty($meta['fsize'])) {
+            $response['filesizeInBytes'] = $meta['fsize'];
+            $response['filesizeHumanReadable'] = size_format($meta['fsize']);
+        }
+    }
+
+    return $response;
+}
+
+/**
+ * @param string $object
+ * @return array
+ */
+function kodo_get_file_meta($object)
+{
+    try {
+        $bucket = kodo_get_bucket_name();
+        $bucketManager = new BucketManager(kodo_get_auth());
+        [$meta, $err] = $bucketManager->stat($bucket, $object);
+        if ($err !== null) {
+            error_log($err->message());
+        }
+
+        return $meta;
+    } catch (\Throwable $e) {
+        error_log($e->getMessage());
+        return ['fsize' => 0];
+    }
+}
 
 add_filter('the_content', 'kodo_setting_content_style');
 function kodo_setting_content_style($content)
