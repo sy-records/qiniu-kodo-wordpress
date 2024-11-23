@@ -5,7 +5,7 @@ Tags: KODO, 七牛云, qiniu, 对象存储, 海量存储
 Requires at least: 4.6
 Tested up to: 6.7
 Requires PHP: 7.1
-Stable tag: 1.5.4
+Stable tag: 1.5.5
 License: Apache2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -30,7 +30,10 @@ License URI: http://www.apache.org/licenses/LICENSE-2.0.html
 8. 支持七牛云原图保护
 9. 支持媒体库编辑
 10. 支持上传文件自动重命名
-11. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
+11. 支持图片裁剪编辑等操作后的上传
+12. 支持多站点
+13. 支持使用 wp-cli 命令上传/删除文件
+14. 插件更多详细介绍和安装：[https://github.com/sy-records/qiniu-kodo-wordpress](https://github.com/sy-records/qiniu-kodo-wordpress)
 
 ## 其他插件
 
@@ -63,6 +66,12 @@ QQ 交流群：887595381
 这个插件已经加上了替换数据库中之前的旧资源地址链接功能，只需要填好对应的链接即可
 
 == Changelog ==
+
+= 1.5.5 =
+
+- 支持使用 `wp-cli` 命令上传/删除文件
+- 修复多站点时删除子站点远程图片失败问题
+- 修复 `get_option` 获取默认值错误
 
 = 1.5.4 =
 
