@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.4
+Version: 1.5.5
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.5.4');
+define('KODO_VERSION', '1.5.5');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -26,12 +26,15 @@ if (!function_exists('get_home_path')) {
     require_once ABSPATH . 'wp-admin/includes/file.php';
 }
 
+if (defined('WP_CLI') && WP_CLI) {
+    require_once plugin_dir_path(__FILE__) . 'kodo-commands.php';
+}
+
 // 初始化选项
 register_activation_hook(__FILE__, 'kodo_set_options');
-// 初始化选项
-function kodo_set_options()
+function kodo_get_default_options()
 {
-    $options = [
+    return [
         'bucket' => '',
         'accessKey' => '',
         'secretKey' => '',
@@ -42,14 +45,17 @@ function kodo_set_options()
         'origin_protect' => 'false', // 原图保护
         'update_file_name' => 'false', // 是否重命名文件名
     ];
-    add_option('kodo_options', $options, '', 'yes');
+}
+function kodo_set_options()
+{
+    add_option('kodo_options', kodo_get_default_options(), '', 'yes');
 }
 
 function kodo_get_auth()
 {
-    $kodo_opt = get_option('kodo_options', true);
-    $accessKey = esc_attr($kodo_opt['accessKey']);
-    $secretKey = esc_attr($kodo_opt['secretKey']);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
+    $accessKey = esc_attr($kodo_options['accessKey']);
+    $secretKey = esc_attr($kodo_options['secretKey']);
     // 构建鉴权对象
     return new Auth($accessKey, $secretKey);
 }
@@ -62,14 +68,15 @@ function kodo_get_auth_token()
 
 function kodo_get_bucket_name()
 {
-    $kodo_opt = get_option('kodo_options', true);
-    return esc_attr($kodo_opt['bucket']);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
+    return esc_attr($kodo_options['bucket']);
 }
 
 /**
  * @param string $object
  * @param string $file
  * @param bool $no_local_file
+ * @return bool
  */
 function kodo_file_upload($object, $file, $no_local_file = false)
 {
@@ -96,10 +103,14 @@ function kodo_file_upload($object, $file, $no_local_file = false)
     [$_, $err] = $uploadMgr->putFile($token, $key, $filePath);
     if ($err !== null) {
         error_log($err->message());
+        return false;
     }
+
     if ($no_local_file) {
         kodo_delete_local_file($file);
     }
+
+    return true;
 }
 
 /**
@@ -109,7 +120,7 @@ function kodo_file_upload($object, $file, $no_local_file = false)
  */
 function kodo_is_delete_local_file()
 {
-    $kodo_options = get_option('kodo_options', true);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
     return esc_attr($kodo_options['nolocalsaving']) == 'true';
 }
 
@@ -140,7 +151,7 @@ function kodo_delete_local_file($file)
 
 /**
  * 删除kodo中的文件
- * @param $file
+ * @param string $file
  * @return bool
  */
 function kodo_delete_file($file)
@@ -150,7 +161,10 @@ function kodo_delete_file($file)
     [$_, $err] = $bucketManager->delete($bucket, $file);
     if ($err !== null) {
         error_log($err->message());
+        return false;
     }
+
+    return true;
 }
 
 /**
@@ -178,7 +192,7 @@ function kodo_get_option($key)
     return esc_attr(get_option($key));
 }
 
-$kodo_options = get_option('kodo_options', true);
+$kodo_options = get_option('kodo_options', kodo_get_default_options());
 if (isset($kodo_options['origin_protect']) && esc_attr($kodo_options['origin_protect']) == 'true' && !empty(esc_attr($kodo_options['image_style']))) {
     add_filter('wp_get_attachment_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
     add_filter('wp_get_attachment_thumb_url', 'kodo_add_suffix_to_attachment_url', 10, 2);
@@ -258,7 +272,7 @@ function kodo_is_image_type($url)
  */
 function kodo_get_image_style()
 {
-    $kodo_options = get_option('kodo_options', true);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
 
     return esc_attr($kodo_options['image_style']);
 }
@@ -325,7 +339,7 @@ function kodo_upload_thumbs($metadata)
     $upload_path = kodo_get_option('upload_path');
 
     //获取kodo插件的配置信息
-    $kodo_options = get_option('kodo_options', true);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
     $no_local_file = esc_attr($kodo_options['nolocalsaving']) == 'true';
     $no_thumb = esc_attr($kodo_options['nothumb']) == 'true';
 
@@ -403,12 +417,11 @@ function kodo_image_editor_file_do($metadata)
  */
 function kodo_delete_remote_attachment($post_id)
 {
+    $wp_uploads = wp_upload_dir();
+    $basedir = $wp_uploads['basedir'];
+    $upload_path = str_replace(get_home_path(), '', $basedir);
     $meta = wp_get_attachment_metadata($post_id);
-    $kodo_options = get_option('kodo_options', true);
-    $upload_path = kodo_get_option('upload_path');
-    if ($upload_path == '') {
-        $upload_path = 'wp-content/uploads';
-    }
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
 
     if (!empty($meta['file'])) {
         $deleteObjects = [];
@@ -474,7 +487,7 @@ if (kodo_get_option('upload_path') == '.') {
 
 function kodo_sanitize_file_name($filename)
 {
-    $kodo_options = get_option('kodo_options');
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
     switch ($kodo_options['update_file_name']) {
         case 'md5':
             return  md5($filename) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
@@ -539,7 +552,7 @@ add_filter('plugin_action_links', 'kodo_plugin_action_links', 10, 2);
 
 function kodo_custom_image_srcset($sources, $size_array, $image_src, $image_meta, $attachment_id)
 {
-    $option = get_option('kodo_options');
+    $option = get_option('kodo_options', kodo_get_default_options());
     $style = !empty($option['image_style']) ? esc_attr($option['image_style']) : '';
     $upload_url_path = esc_attr($option['upload_url_path']);
     if (empty($style)) {
@@ -562,7 +575,7 @@ function kodo_wp_prepare_attachment_for_js($response)
 {
     if (empty($response['filesizeInBytes']) || empty($response['filesizeHumanReadable'])) {
         $upload_url_path = kodo_get_option('upload_url_path');
-        $upload_path = get_option('upload_path');
+        $upload_path = kodo_get_option('upload_path');
         $object = str_replace($upload_url_path, $upload_path, $response['url']);
         $meta = kodo_get_file_meta($object);
         if (!empty($meta['fsize'])) {
@@ -598,7 +611,7 @@ function kodo_get_file_meta($object)
 add_filter('the_content', 'kodo_setting_content_style');
 function kodo_setting_content_style($content)
 {
-    $option = get_option('kodo_options');
+    $option = get_option('kodo_options', kodo_get_default_options());
     $upload_url_path = esc_attr($option['upload_url_path']);
     $style = esc_attr($option['image_style']);
     if (!empty($style)) {
@@ -619,7 +632,7 @@ function kodo_setting_content_style($content)
 add_filter('post_thumbnail_html', 'kodo_setting_post_thumbnail_style', 10, 3);
 function kodo_setting_post_thumbnail_style($html, $post_id, $post_image_id)
 {
-    $option = get_option('kodo_options');
+    $option = get_option('kodo_options', kodo_get_default_options());
     $upload_url_path = esc_attr($option['upload_url_path']);
     $style = esc_attr($option['image_style']);
     if (!empty($style) && has_post_thumbnail()) {
@@ -711,7 +724,7 @@ function kodo_setting_page()
         echo '<div class="updated"><p><strong>设置已保存！</strong></p></div>';
     }
 
-    $kodo_options = get_option('kodo_options', true);
+    $kodo_options = get_option('kodo_options', kodo_get_default_options());
 
     $kodo_nothumb = esc_attr($kodo_options['nothumb']) == 'true';
     $kodo_nolocalsaving = esc_attr($kodo_options['nolocalsaving']) == 'true';
