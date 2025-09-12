@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.6
+Version: 1.5.7
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 require_once 'sdk/vendor/autoload.php';
 
-define('KODO_VERSION', '1.5.5');
+define('KODO_VERSION', '1.5.7');
 define('KODO_BASEFOLDER', plugin_basename(dirname(__FILE__)));
 
 use Qiniu\Auth;
@@ -664,8 +664,14 @@ function kodo_setting_page()
     if (!current_user_can('manage_options')) {
         wp_die('Insufficient privileges!');
     }
+    if (!empty($_POST) && !empty($_POST['type'])) {
+        $nonce = $_POST["{$_POST['type']}-nonce"] ?? '';
+        if (empty($nonce) || !wp_verify_nonce($nonce, $_POST['type'])) {
+            wp_die('Illegal requests!');
+        }
+    }
     $options = [];
-    if (!empty($_POST) and $_POST['type'] == 'kodo_set') {
+    if (!empty($_POST) && $_POST['type'] == 'qiniu_kodo_set') {
         $options['bucket'] = isset($_POST['bucket']) ? sanitize_text_field($_POST['bucket']) : '';
         $options['accessKey'] = isset($_POST['accessKey']) ? sanitize_text_field($_POST['accessKey']) : '';
         $options['secretKey'] = isset($_POST['secretKey']) ? sanitize_text_field($_POST['secretKey']) : '';
@@ -678,7 +684,7 @@ function kodo_setting_page()
         $options['update_file_name'] = isset($_POST['update_file_name']) ? sanitize_text_field($_POST['update_file_name']) : 'false';
     }
 
-    if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_all') {
+    if (!empty($_POST) && $_POST['type'] == 'qiniu_kodo_all') {
         $files = kodo_read_dir_queue(get_home_path(), kodo_get_option('upload_path'));
         foreach ($files as $file) {
             kodo_file_upload($file['key'], $file['filepath']);
@@ -687,15 +693,10 @@ function kodo_setting_page()
     }
 
     // 替换数据库链接
-    if (!empty($_POST) and $_POST['type'] == 'qiniu_kodo_replace') {
-        $nonce = $_POST['qiniu_kodo_replace-nonce'] ?? '';
-        if (empty($nonce) || !wp_verify_nonce($nonce, 'qiniu_kodo_replace')) {
-            wp_die('Illegal requests!');
-        }
-
+    if (!empty($_POST) && $_POST['type'] == 'qiniu_kodo_replace') {
         $old_url = esc_url_raw($_POST['old_url']);
         $new_url = esc_url_raw($_POST['new_url']);
-        if (!empty($old_url) && !empty($new_url)) {
+        if (!empty($old_url)) {
             global $wpdb;
             // 文章内容
             $posts_name = $wpdb->prefix . 'posts';
@@ -745,7 +746,7 @@ function kodo_setting_page()
                         <legend>空间名称</legend>
                     </th>
                     <td>
-                        <input type="text" name="bucket" value="<?php echo esc_attr($kodo_options['bucket']); ?>" size="50" placeholder="请填写空间名称"/>
+                        <input type="text" name="bucket" required value="<?php echo esc_attr($kodo_options['bucket']); ?>" size="50" placeholder="请填写空间名称"/>
                         <p>请先访问 <a href="https://portal.qiniu.com/kodo/bucket?shouldCreateBucket=true" target="_blank">七牛云控制台</a> 创建<code>存储空间</code>，再填写以上内容。</p>
                     </td>
                 </tr>
@@ -753,14 +754,14 @@ function kodo_setting_page()
                     <th>
                         <legend>accessKey</legend>
                     </th>
-                    <td><input type="text" name="accessKey" value="<?php echo esc_attr($kodo_options['accessKey']); ?>" size="50" placeholder="accessKey"/></td>
+                    <td><input type="text" name="accessKey" required value="<?php echo esc_attr($kodo_options['accessKey']); ?>" size="50" placeholder="accessKey"/></td>
                 </tr>
                 <tr>
                     <th>
                         <legend>secretKey</legend>
                     </th>
                     <td>
-                        <input type="password" name="secretKey" value="<?php echo esc_attr($kodo_options['secretKey']); ?>" size="50" placeholder="secretKey"/>
+                        <input type="password" name="secretKey" required value="<?php echo esc_attr($kodo_options['secretKey']); ?>" size="50" placeholder="secretKey"/>
                     </td>
                 </tr>
                 <tr>
@@ -798,7 +799,7 @@ function kodo_setting_page()
                         <legend>本地文件夹</legend>
                     </th>
                     <td>
-                        <input type="text" name="upload_path" value="<?php echo kodo_get_option('upload_path'); ?>" size="50" placeholder="请输入上传文件夹"/>
+                        <input type="text" name="upload_path" required value="<?php echo kodo_get_option('upload_path'); ?>" size="50" placeholder="请输入上传文件夹"/>
                         <p>附件在服务器上的存储位置，例如： <code>wp-content/uploads</code> （注意不要以“/”开头和结尾），根目录请输入<code>.</code>。</p>
                     </td>
                 </tr>
@@ -807,7 +808,7 @@ function kodo_setting_page()
                         <legend>URL前缀</legend>
                     </th>
                     <td>
-                        <input type="text" name="upload_url_path" value="<?php echo kodo_get_option('upload_url_path'); ?>" size="50" placeholder="请输入URL前缀"/>
+                        <input type="text" name="upload_url_path" required value="<?php echo kodo_get_option('upload_url_path'); ?>" size="50" placeholder="请输入URL前缀"/>
 
                         <p><b>注意：</b></p>
 
@@ -852,7 +853,8 @@ function kodo_setting_page()
                     <td><input type="submit" class="button button-primary" value="保存更改"/></td>
                 </tr>
             </table>
-            <input type="hidden" name="type" value="kodo_set">
+            <input type="hidden" name="type" value="qiniu_kodo_set">
+            <?php wp_nonce_field('qiniu_kodo_set', 'qiniu_kodo_set-nonce'); ?>
         </form>
         <form method="post">
             <table class="form-table">
@@ -861,6 +863,7 @@ function kodo_setting_page()
                         <legend>同步历史附件</legend>
                     </th>
                     <input type="hidden" name="type" value="qiniu_kodo_all">
+                    <?php wp_nonce_field('qiniu_kodo_all', 'qiniu_kodo_all-nonce'); ?>
                     <td>
                         <input type="submit" class="button button-secondary" value="开始同步"/>
                         <p><b>注意：如果是首次同步，执行时间将会非常长（根据你的历史附件数量），有可能会因为执行时间过长，导致页面显示超时或者报错。<br> 所以，建议附件数量过多的用户，直接使用官方的 <a target="_blank" rel="nofollow" href="https://developer.qiniu.com/kodo/tools/6435/kodoimport">同步工具</a></b></p>
@@ -876,7 +879,7 @@ function kodo_setting_page()
                         <legend>数据库原链接替换</legend>
                     </th>
                     <td>
-                        <input type="text" name="old_url" size="50" placeholder="请输入要替换的旧域名"/>
+                        <input type="text" name="old_url" required size="50" placeholder="请输入要替换的旧域名"/>
                     </td>
                 </tr>
                 <tr>
