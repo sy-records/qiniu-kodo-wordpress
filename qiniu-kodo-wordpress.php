@@ -3,7 +3,7 @@
 Plugin Name: KODO Qiniu
 Plugin URI: https://github.com/sy-records/qiniu-kodo-wordpress
 Description: 使用七牛云海量存储系统KODO作为附件存储空间。（This is a plugin that uses Qiniu Cloud KODO for attachments remote saving.）
-Version: 1.5.8
+Version: 1.5.9
 Author: 沈唁
 Author URI: https://qq52o.me
 License: Apache2.0
@@ -678,7 +678,7 @@ function kodo_setting_page()
         $options['nolocalsaving'] = isset($_POST['nolocalsaving']) ? 'true' : 'false';
         $options['origin_protect'] = isset($_POST['origin_protect']) ? 'true' : 'false';
         //仅用于插件卸载时比较使用
-        $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(stripslashes($_POST['upload_url_path'])) : '';
+        $options['upload_url_path'] = isset($_POST['upload_url_path']) ? sanitize_text_field(trim(stripslashes($_POST['upload_url_path']), '/')) : '';
         $options['image_style'] = isset($_POST['image_style']) ? sanitize_text_field($_POST['image_style']) : '';
         $options['update_file_name'] = isset($_POST['update_file_name']) ? sanitize_text_field($_POST['update_file_name']) : 'false';
     }
@@ -719,8 +719,7 @@ function kodo_setting_page()
         $upload_path = sanitize_text_field(trim(stripslashes($_POST['upload_path']), '/'));
         $upload_path = ($upload_path == '') ? 'wp-content/uploads' : $upload_path;
         update_option('upload_path', $upload_path);
-        $upload_url_path = sanitize_text_field(trim(stripslashes($_POST['upload_url_path']), '/'));
-        update_option('upload_url_path', $upload_url_path);
+        update_option('upload_url_path', $options['upload_url_path']);
         echo '<div class="updated"><p><strong>设置已保存！</strong></p></div>';
     }
 
